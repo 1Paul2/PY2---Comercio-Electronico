@@ -46,4 +46,4 @@ git diff             # Ver qué cambió antes de hacer add
 npm run deploy
 
 # Link de git hub pages
-https://1paul2.github.io/PY1---Comercio-Electronico/
+https://1paul2.github.io/PY2---Comercio-Electronico/
