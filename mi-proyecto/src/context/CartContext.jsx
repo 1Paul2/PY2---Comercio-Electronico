@@ -40,14 +40,14 @@ function calculateSubtotal(item) {
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { id, name, price, image } = action.payload
+      const { id, name, price, image, quantity = 1 } = action.payload
       const existing = state.items.find((item) => item.id === id)
 
       if (existing) {
         return {
           ...state,
           items: state.items.map((item) =>
-            item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+            item.id === id ? { ...item, quantity: item.quantity + quantity } : item
           ),
           lastMessage: `Se agregó otra unidad de "${name}" al carrito`,
         }
@@ -55,7 +55,7 @@ function cartReducer(state, action) {
 
       return {
         ...state,
-        items: [...state.items, { id, name, price, image, quantity: 1 }],
+        items: [...state.items, { id, name, price, image, quantity }],
         lastMessage: `"${name}" se agregó al carrito`,
       }
     }
