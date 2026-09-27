@@ -17,6 +17,7 @@ const CART_STORAGE_KEY = 'maquinaria-cr-cart'
 const initialState = {
   items: [], // { id, name, price, image, quantity }
   lastMessage: null, // feedback descriptivo para la UI (ej: toast al agregar, o al topar el mínimo)
+  lastMessageType: null,
 }
 
 function getInitialState() {
@@ -32,6 +33,14 @@ function getInitialState() {
 
 function calculateSubtotal(item) {
   return item.price * item.quantity
+}
+
+function formatAddedMessage(quantity, name, isPartial = false) {
+  const unitLabel = quantity === 1 ? 'unidad' : 'unidades'
+  const verb = quantity === 1 ? 'se agregó' : 'se agregaron'
+  const prefix = isPartial ? 'Solo ' : ''
+
+  return `${prefix}${quantity} ${unitLabel} de "${name}" ${verb} al carrito`
 }
 
 function cartReducer(state, action) {
@@ -52,6 +61,7 @@ function cartReducer(state, action) {
           return {
             ...state,
             lastMessage: `No se agregaron unidades de "${name}" porque ya no hay stock disponible`,
+            lastMessageType: 'warning',
           }
         }
 
@@ -64,8 +74,9 @@ function cartReducer(state, action) {
           ),
           lastMessage:
             addedQuantity < requestedQuantity
-              ? `Solo se agregaron ${addedQuantity} unidades de "${name}" debido a limitantes de stock`
-              : `Se agregaron ${addedQuantity} unidades de "${name}" al carrito`,
+              ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
+              : formatAddedMessage(addedQuantity, name),
+          lastMessageType: addedQuantity < requestedQuantity ? 'warning' : 'success',
         }
       }
 
@@ -77,6 +88,7 @@ function cartReducer(state, action) {
         return {
           ...state,
           lastMessage: `No se agregó "${name}" porque no hay stock disponible`,
+          lastMessageType: 'warning',
         }
       }
 
@@ -85,8 +97,9 @@ function cartReducer(state, action) {
         items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit }],
         lastMessage:
           addedQuantity < requestedQuantity
-            ? `Solo se agregaron ${addedQuantity} unidades de "${name}" debido a limitantes de stock`
-            : `"${name}" se agregó al carrito`,
+            ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
+            : formatAddedMessage(addedQuantity, name),
+        lastMessageType: addedQuantity < requestedQuantity ? 'warning' : 'success',
       }
     }
 
@@ -98,6 +111,7 @@ function cartReducer(state, action) {
         return {
           ...state,
           lastMessage: `No hay más unidades disponibles de "${item.name}"`,
+          lastMessageType: 'warning',
         }
       }
 
@@ -109,6 +123,7 @@ function cartReducer(state, action) {
             : item
         ),
         lastMessage: null,
+        lastMessageType: null,
       }
     }
 
@@ -119,8 +134,8 @@ function cartReducer(state, action) {
       if (item.quantity <= 1) {
         return {
           ...state,
-          items: state.items.filter((cartItem) => cartItem.id !== action.payload.id),
-          lastMessage: `Producto "${item.name}" eliminado correctamente`,
+          lastMessage: null,
+          lastMessageType: null,
         }
       }
 
@@ -141,7 +156,8 @@ function cartReducer(state, action) {
       return {
         ...state,
         items: state.items.filter((item) => item.id !== action.payload.id),
-        lastMessage: item ? `Producto "${item.name}" eliminado correctamente` : null,
+        lastMessage: null,
+        lastMessageType: null,
       }
     }
 
@@ -150,6 +166,7 @@ function cartReducer(state, action) {
         ...state,
         items: [],
         lastMessage: 'El carrito se vació',
+        lastMessageType: 'success',
       }
     }
 
@@ -157,6 +174,7 @@ function cartReducer(state, action) {
       return {
         ...state,
         lastMessage: null,
+        lastMessageType: null,
       }
     }
 
@@ -182,6 +200,16 @@ export function CartProvider({ children }) {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items))
   }, [state.items])
 
+  useEffect(() => {
+    if (!state.lastMessage) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      dispatch({ type: 'CLEAR_MESSAGE' })
+    }, 5000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [state.lastMessage])
+
   const value = useMemo(() => {
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0)
     const subtotal = state.items.reduce((total, item) => total + calculateSubtotal(item), 0)
@@ -189,6 +217,7 @@ export function CartProvider({ children }) {
     return {
       items: state.items,
       lastMessage: state.lastMessage,
+      lastMessageType: state.lastMessageType,
       itemCount,
       subtotal,
 
@@ -196,13 +225,6 @@ export function CartProvider({ children }) {
       increment: (id) => dispatch({ type: 'INCREMENT', payload: { id } }),
       decrement: (id) => dispatch({ type: 'DECREMENT', payload: { id } }),
       removeItem: (id) => {
-        const item = state.items.find((item) => item.id === id)
-        const name = item ? item.name : 'este producto'
-
-        // Confirmación antes de eliminar, según lo pedido en el laboratorio.
-        const confirmed = window.confirm(`¿Estás seguro de eliminar "${name}" del carrito?`)
-        if (!confirmed) return
-
         dispatch({ type: 'REMOVE_ITEM', payload: { id } })
       },
       clearCart: () => dispatch({ type: 'CLEAR_CART' }),

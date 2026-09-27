@@ -126,7 +126,7 @@ function useProduct(id) {
 function ProductDetail({ id }) {
   // Estado del producto consultado: carga, éxito, error o no encontrado.
   const { status, product } = useProduct(id)
-  const { addItem, lastMessage, clearMessage } = useCart()
+  const { addItem, lastMessage, lastMessageType, clearMessage } = useCart()
 
   // Permite volver a la vista anterior desde el detalle.
   const navigate = useNavigate()
@@ -454,7 +454,7 @@ function ProductDetail({ id }) {
           </div>
 
           {lastMessage && (
-            <p className="product-detail__cart-feedback" role="status" aria-live="polite">
+            <p className={`product-detail__cart-feedback product-detail__cart-feedback--${lastMessageType}`} role="status" aria-live="polite">
               {lastMessage}
               <button type="button" onClick={clearMessage} aria-label="Cerrar mensaje">
                 ×

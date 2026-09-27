@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { InstantSearch } from 'react-instantsearch'
 import { Link } from 'react-router-dom'
 import { searchClient } from '../features/catalog/searchClient'
@@ -7,7 +8,7 @@ import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import '../styles/Cart.css'
 
-function CartItem({ item, increment, decrement, removeItem }) {
+function CartItem({ item, increment, decrement, onRequestRemove }) {
   const isAtStockLimit = Number.isFinite(item.maxStock) && item.quantity >= item.maxStock
 
   return (
@@ -22,7 +23,11 @@ function CartItem({ item, increment, decrement, removeItem }) {
 
       <div className="cart-item__actions">
         <div className="cart-item__quantity" aria-label={`Cantidad de ${item.name}`}>
-          <button type="button" onClick={() => decrement(item.id)} aria-label={`Disminuir cantidad de ${item.name}`}>
+          <button
+            type="button"
+            onClick={() => (item.quantity === 1 ? onRequestRemove(item) : decrement(item.id))}
+            aria-label={`Disminuir cantidad de ${item.name}`}
+          >
             −
           </button>
           <span>{item.quantity}</span>
@@ -35,7 +40,7 @@ function CartItem({ item, increment, decrement, removeItem }) {
             +
           </button>
         </div>
-        <button type="button" className="cart-item__remove" onClick={() => removeItem(item.id)}>
+        <button type="button" className="cart-item__remove" onClick={() => onRequestRemove(item)}>
           Eliminar
         </button>
       </div>
@@ -44,7 +49,14 @@ function CartItem({ item, increment, decrement, removeItem }) {
 }
 
 function CartContent() {
-  const { items, subtotal, lastMessage, clearMessage, increment, decrement, removeItem } = useCart()
+  const { items, subtotal, lastMessage, lastMessageType, clearMessage, increment, decrement, removeItem } = useCart()
+  const [pendingRemoval, setPendingRemoval] = useState(null)
+
+  function confirmRemoval() {
+    if (!pendingRemoval) return
+    removeItem(pendingRemoval.id)
+    setPendingRemoval(null)
+  }
 
   if (items.length === 0) {
     return (
@@ -53,7 +65,7 @@ function CartContent() {
           <h1>Tu carrito está vacío</h1>
           <p>Agrega productos del catálogo para comenzar tu compra.</p>
           {lastMessage && (
-            <p className="cart-page__feedback" role="status" aria-live="polite">
+            <p className={`cart-page__feedback cart-page__feedback--${lastMessageType}`} role="status" aria-live="polite">
               {lastMessage}
               <button type="button" onClick={clearMessage} aria-label="Cerrar mensaje">
                 ×
@@ -83,7 +95,7 @@ function CartContent() {
       <div className="cart-page__layout">
         <section className="cart-page__items" aria-label="Productos del carrito">
           {lastMessage && (
-            <p className="cart-page__feedback" role="status" aria-live="polite">
+            <p className={`cart-page__feedback cart-page__feedback--${lastMessageType}`} role="status" aria-live="polite">
               {lastMessage}
               <button type="button" onClick={clearMessage} aria-label="Cerrar mensaje">
                 ×
@@ -96,7 +108,7 @@ function CartContent() {
               item={item}
               increment={increment}
               decrement={decrement}
-              removeItem={removeItem}
+              onRequestRemove={setPendingRemoval}
             />
           ))}
         </section>
@@ -110,6 +122,23 @@ function CartContent() {
           <p className="cart-summary__note">Impuestos y envío se calcularán en el siguiente paso.</p>
         </aside>
       </div>
+
+      {pendingRemoval && (
+        <div className="cart-confirmation__backdrop" role="presentation">
+          <section className="cart-confirmation" role="dialog" aria-modal="true" aria-labelledby="cart-confirmation-title">
+            <h2 id="cart-confirmation-title">¿Eliminar producto?</h2>
+            <p>¿Deseas eliminar {`"${pendingRemoval.name}"`} del carrito?</p>
+            <div className="cart-confirmation__actions">
+              <button type="button" className="cart-confirmation__cancel" onClick={() => setPendingRemoval(null)}>
+                Cancelar
+              </button>
+              <button type="button" className="cart-confirmation__delete" onClick={confirmRemoval}>
+                Eliminar
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   )
 }
