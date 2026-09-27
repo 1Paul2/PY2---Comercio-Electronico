@@ -6,11 +6,8 @@ import { createContext, useContext, useEffect, useReducer, useMemo } from 'react
  *              Maneja agregar, incrementar, decrementar y eliminar productos.
  *
  * Comportamiento documentado (según punto 2.4 del enunciado):
- *   - La cantidad de un producto NUNCA baja de 1 mientras esté en el carrito.
- *   - Si se intenta decrementar estando en 1, la cantidad se mantiene en 1
- *     y se genera un mensaje descriptivo indicando que debe
- *     usarse la opción "Eliminar" para quitar el producto por completo.
- *   - Para sacar un producto del carrito debe usarse explícitamente REMOVE_ITEM.
+ *   - La cantidad de un producto se limita al stock máximo conocido.
+ *   - Si se decrementa una línea que tiene 1 unidad, la línea se elimina.
  *
  */
 
@@ -40,29 +37,69 @@ function calculateSubtotal(item) {
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { id, name, price, image, quantity = 1 } = action.payload
+      const { id, name, price, image, quantity = 1, maxStock } = action.payload
       const existing = state.items.find((item) => item.id === id)
+      const requestedQuantity = Math.max(1, Math.floor(quantity))
+      const stockLimit = Number.isFinite(maxStock) ? maxStock : existing?.maxStock
 
       if (existing) {
+        const available = Number.isFinite(stockLimit)
+          ? Math.max(0, stockLimit - existing.quantity)
+          : requestedQuantity
+        const addedQuantity = Math.min(requestedQuantity, available)
+
+        if (addedQuantity === 0) {
+          return {
+            ...state,
+            lastMessage: `No se agregaron unidades de "${name}" porque ya no hay stock disponible`,
+          }
+        }
+
         return {
           ...state,
           items: state.items.map((item) =>
-            item.id === id ? { ...item, quantity: item.quantity + quantity } : item
+            item.id === id
+              ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity }
+              : item
           ),
-          lastMessage: `Se agregó otra unidad de "${name}" al carrito`,
+          lastMessage:
+            addedQuantity < requestedQuantity
+              ? `Solo se agregaron ${addedQuantity} unidades de "${name}" debido a limitantes de stock`
+              : `Se agregaron ${addedQuantity} unidades de "${name}" al carrito`,
+        }
+      }
+
+      const addedQuantity = Number.isFinite(stockLimit)
+        ? Math.min(requestedQuantity, Math.max(0, stockLimit))
+        : requestedQuantity
+
+      if (addedQuantity === 0) {
+        return {
+          ...state,
+          lastMessage: `No se agregó "${name}" porque no hay stock disponible`,
         }
       }
 
       return {
         ...state,
-        items: [...state.items, { id, name, price, image, quantity }],
-        lastMessage: `"${name}" se agregó al carrito`,
+        items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit }],
+        lastMessage:
+          addedQuantity < requestedQuantity
+            ? `Solo se agregaron ${addedQuantity} unidades de "${name}" debido a limitantes de stock`
+            : `"${name}" se agregó al carrito`,
       }
     }
 
     case 'INCREMENT': {
       const item = state.items.find((item) => item.id === action.payload.id)
       if (!item) return state
+
+      if (Number.isFinite(item.maxStock) && item.quantity >= item.maxStock) {
+        return {
+          ...state,
+          lastMessage: `No hay más unidades disponibles de "${item.name}"`,
+        }
+      }
 
       return {
         ...state,
@@ -82,7 +119,8 @@ function cartReducer(state, action) {
       if (item.quantity <= 1) {
         return {
           ...state,
-          lastMessage: `"${item.name}" ya está en la cantidad mínima (1). Usá "Eliminar" si querés quitarlo del carrito.`,
+          items: state.items.filter((cartItem) => cartItem.id !== action.payload.id),
+          lastMessage: `Producto "${item.name}" eliminado correctamente`,
         }
       }
 

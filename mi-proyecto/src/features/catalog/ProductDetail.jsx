@@ -183,10 +183,10 @@ function ProductDetail({ id }) {
   const minQuantity = activeTab === 'b2b' ? pricing.b2b?.min_order_quantity || 1 : 1
 
   // Verifica si el producto está agotado en la modalidad pública.
-  const isOutOfStock = activeTab === 'b2c' && pricing.b2c?.in_stock === false
+  const isOutOfStock = totalStock <= 0 || (activeTab === 'b2c' && pricing.b2c?.in_stock === false)
 
   // Máximo de unidades permitidas según el stock disponible.
-  const maxQuantity = totalStock > 0 ? totalStock : minQuantity
+  const maxQuantity = totalStock
 
   // Indica si la cantidad actual llegó al límite disponible.
   const isAtMaxStock = quantity >= maxQuantity
@@ -250,6 +250,7 @@ function ProductDetail({ id }) {
       price: discountedUnitPrice,
       image: image_url,
       quantity,
+      maxStock: totalStock,
     })
   }
 
