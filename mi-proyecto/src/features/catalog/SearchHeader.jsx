@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useSearchBox } from 'react-instantsearch'
 import ThemeToggle from '../../components/ThemeToggle'
+import LogoIcon from '../../components/LogoIcon'
 import SearchAutocomplete from './SearchAutocomplete'
 import '../../styles/SearchHeader.css'
 
@@ -28,7 +29,10 @@ function SearchHeader({ redirectSearchTo }) {
   return (
     <header className="search-header">
       <div className="search-header__left">
-        <Link to="/" className="site-header__logo">⚙️ Maquinaria CR</Link>
+        <Link to="/" className="site-header__logo">
+          <LogoIcon className="logo-icon" />
+          Maquinaria CR
+        </Link>
         <nav className="site-header__nav">
           <Link to="/">Inicio</Link>
           <Link to="/productos">Productos</Link>
