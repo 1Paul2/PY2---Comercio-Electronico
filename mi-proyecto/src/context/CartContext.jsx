@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useMemo } from 'react'
+import { createContext, useContext, useEffect, useReducer, useMemo } from 'react'
 
 /**
  * Nombre: CartContext
@@ -15,10 +15,22 @@ import { createContext, useContext, useReducer, useMemo } from 'react'
  */
 
 const CartContext = createContext(null)
+const CART_STORAGE_KEY = 'maquinaria-cr-cart'
 
 const initialState = {
   items: [], // { id, name, price, image, quantity }
   lastMessage: null, // feedback descriptivo para la UI (ej: toast al agregar, o al topar el mínimo)
+}
+
+function getInitialState() {
+  try {
+    const storedItems = localStorage.getItem(CART_STORAGE_KEY)
+    const items = storedItems ? JSON.parse(storedItems) : []
+
+    return Array.isArray(items) ? { ...initialState, items } : initialState
+  } catch {
+    return initialState
+  }
 }
 
 function calculateSubtotal(item) {
@@ -126,7 +138,11 @@ function cartReducer(state, action) {
 }
 
 export function CartProvider({ children }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState)
+  const [state, dispatch] = useReducer(cartReducer, undefined, getInitialState)
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items))
+  }, [state.items])
 
   const value = useMemo(() => {
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0)
