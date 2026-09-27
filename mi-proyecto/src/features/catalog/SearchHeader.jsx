@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useSearchBox } from 'react-instantsearch'
 import ThemeToggle from '../../components/ThemeToggle'
 import LogoIcon from '../../components/LogoIcon'
+import { useCart } from '../../context/CartContext'
 import SearchAutocomplete from './SearchAutocomplete'
 import '../../styles/SearchHeader.css'
 
@@ -15,6 +16,7 @@ import '../../styles/SearchHeader.css'
 function SearchHeader({ redirectSearchTo }) {
   const navigate = useNavigate()
   const { refine } = useSearchBox()
+  const { itemCount } = useCart()
 
   const handleQuery = (query) => {
     const trimmed = query.trim()
@@ -44,6 +46,16 @@ function SearchHeader({ redirectSearchTo }) {
       </div>
 
       <div className="search-header__right">
+        <Link to="/carrito" className="cart-link" aria-label={`Carrito, ${itemCount} unidades`}>
+          <img
+            className="cart-link__icon"
+            src={`${import.meta.env.BASE_URL}icono_carrito.png`}
+            alt=""
+            aria-hidden="true"
+          />
+          <span className="cart-link__label">Carrito</span>
+          <span className="cart-link__count">{itemCount}</span>
+        </Link>
         <ThemeToggle />
       </div>
     </header>

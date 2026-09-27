@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useMemo } from 'react'
+import { createContext, useContext, useEffect, useReducer, useMemo } from 'react'
 
 /**
  * Nombre: CartContext
@@ -6,51 +6,114 @@ import { createContext, useContext, useReducer, useMemo } from 'react'
  *              Maneja agregar, incrementar, decrementar y eliminar productos.
  *
  * Comportamiento documentado (según punto 2.4 del enunciado):
- *   - La cantidad de un producto NUNCA baja de 1 mientras esté en el carrito.
- *   - Si se intenta decrementar estando en 1, la cantidad se mantiene en 1
- *     y se genera un mensaje descriptivo indicando que debe
- *     usarse la opción "Eliminar" para quitar el producto por completo.
- *   - Para sacar un producto del carrito debe usarse explícitamente REMOVE_ITEM.
+ *   - La cantidad de un producto se limita al stock máximo conocido.
+ *   - Si se decrementa una línea que tiene 1 unidad, la línea se elimina.
  *
  */
 
 const CartContext = createContext(null)
+const CART_STORAGE_KEY = 'maquinaria-cr-cart'
 
 const initialState = {
   items: [], // { id, name, price, image, quantity }
   lastMessage: null, // feedback descriptivo para la UI (ej: toast al agregar, o al topar el mínimo)
+  lastMessageType: null,
+}
+
+function getInitialState() {
+  try {
+    const storedItems = localStorage.getItem(CART_STORAGE_KEY)
+    const items = storedItems ? JSON.parse(storedItems) : []
+
+    return Array.isArray(items) ? { ...initialState, items } : initialState
+  } catch {
+    return initialState
+  }
 }
 
 function calculateSubtotal(item) {
   return item.price * item.quantity
 }
 
+function formatAddedMessage(quantity, name, isPartial = false) {
+  const unitLabel = quantity === 1 ? 'unidad' : 'unidades'
+  const verb = quantity === 1 ? 'se agregó' : 'se agregaron'
+  const prefix = isPartial ? 'Solo ' : ''
+
+  return `${prefix}${quantity} ${unitLabel} de "${name}" ${verb} al carrito`
+}
+
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { id, name, price, image } = action.payload
+      const { id, name, price, image, quantity = 1, maxStock } = action.payload
       const existing = state.items.find((item) => item.id === id)
+      const requestedQuantity = Math.max(1, Math.floor(quantity))
+      const stockLimit = Number.isFinite(maxStock) ? maxStock : existing?.maxStock
 
       if (existing) {
+        const available = Number.isFinite(stockLimit)
+          ? Math.max(0, stockLimit - existing.quantity)
+          : requestedQuantity
+        const addedQuantity = Math.min(requestedQuantity, available)
+
+        if (addedQuantity === 0) {
+          return {
+            ...state,
+            lastMessage: `No se agregaron unidades de "${name}" porque ya no hay stock disponible`,
+            lastMessageType: 'warning',
+          }
+        }
+
         return {
           ...state,
           items: state.items.map((item) =>
-            item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+            item.id === id
+              ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity }
+              : item
           ),
-          lastMessage: `Se agregó otra unidad de "${name}" al carrito`,
+          lastMessage:
+            addedQuantity < requestedQuantity
+              ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
+              : formatAddedMessage(addedQuantity, name),
+          lastMessageType: addedQuantity < requestedQuantity ? 'warning' : 'success',
+        }
+      }
+
+      const addedQuantity = Number.isFinite(stockLimit)
+        ? Math.min(requestedQuantity, Math.max(0, stockLimit))
+        : requestedQuantity
+
+      if (addedQuantity === 0) {
+        return {
+          ...state,
+          lastMessage: `No se agregó "${name}" porque no hay stock disponible`,
+          lastMessageType: 'warning',
         }
       }
 
       return {
         ...state,
-        items: [...state.items, { id, name, price, image, quantity: 1 }],
-        lastMessage: `"${name}" se agregó al carrito`,
+        items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit }],
+        lastMessage:
+          addedQuantity < requestedQuantity
+            ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
+            : formatAddedMessage(addedQuantity, name),
+        lastMessageType: addedQuantity < requestedQuantity ? 'warning' : 'success',
       }
     }
 
     case 'INCREMENT': {
       const item = state.items.find((item) => item.id === action.payload.id)
       if (!item) return state
+
+      if (Number.isFinite(item.maxStock) && item.quantity >= item.maxStock) {
+        return {
+          ...state,
+          lastMessage: `No hay más unidades disponibles de "${item.name}"`,
+          lastMessageType: 'warning',
+        }
+      }
 
       return {
         ...state,
@@ -60,6 +123,7 @@ function cartReducer(state, action) {
             : item
         ),
         lastMessage: null,
+        lastMessageType: null,
       }
     }
 
@@ -70,7 +134,8 @@ function cartReducer(state, action) {
       if (item.quantity <= 1) {
         return {
           ...state,
-          lastMessage: `"${item.name}" ya está en la cantidad mínima (1). Usá "Eliminar" si querés quitarlo del carrito.`,
+          lastMessage: null,
+          lastMessageType: null,
         }
       }
 
@@ -91,7 +156,8 @@ function cartReducer(state, action) {
       return {
         ...state,
         items: state.items.filter((item) => item.id !== action.payload.id),
-        lastMessage: item ? `Producto "${item.name}" eliminado correctamente` : null,
+        lastMessage: null,
+        lastMessageType: null,
       }
     }
 
@@ -100,6 +166,7 @@ function cartReducer(state, action) {
         ...state,
         items: [],
         lastMessage: 'El carrito se vació',
+        lastMessageType: 'success',
       }
     }
 
@@ -107,6 +174,7 @@ function cartReducer(state, action) {
       return {
         ...state,
         lastMessage: null,
+        lastMessageType: null,
       }
     }
 
@@ -126,7 +194,21 @@ function cartReducer(state, action) {
 }
 
 export function CartProvider({ children }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState)
+  const [state, dispatch] = useReducer(cartReducer, undefined, getInitialState)
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items))
+  }, [state.items])
+
+  useEffect(() => {
+    if (!state.lastMessage) return undefined
+
+    const timeoutId = window.setTimeout(() => {
+      dispatch({ type: 'CLEAR_MESSAGE' })
+    }, 5000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [state.lastMessage])
 
   const value = useMemo(() => {
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0)
@@ -135,6 +217,7 @@ export function CartProvider({ children }) {
     return {
       items: state.items,
       lastMessage: state.lastMessage,
+      lastMessageType: state.lastMessageType,
       itemCount,
       subtotal,
 
@@ -142,13 +225,6 @@ export function CartProvider({ children }) {
       increment: (id) => dispatch({ type: 'INCREMENT', payload: { id } }),
       decrement: (id) => dispatch({ type: 'DECREMENT', payload: { id } }),
       removeItem: (id) => {
-        const item = state.items.find((item) => item.id === id)
-        const name = item ? item.name : 'este producto'
-
-        // Confirmación antes de eliminar, según lo pedido en el laboratorio.
-        const confirmed = window.confirm(`¿Estás seguro de eliminar "${name}" del carrito?`)
-        if (!confirmed) return
-
         dispatch({ type: 'REMOVE_ITEM', payload: { id } })
       },
       clearCart: () => dispatch({ type: 'CLEAR_CART' }),

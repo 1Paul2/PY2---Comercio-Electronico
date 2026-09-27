@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { searchClient } from './searchClient'
 import { formatCRCParts, formatPercent } from './format'
 import RelatedProducts from './RelatedProducts'
+import { useCart } from '../../context/CartContext'
 import '../../styles/ProductDetail.css'
 
 // Nombre del índice de productos en Algolia.
@@ -125,6 +126,7 @@ function useProduct(id) {
 function ProductDetail({ id }) {
   // Estado del producto consultado: carga, éxito, error o no encontrado.
   const { status, product } = useProduct(id)
+  const { addItem, lastMessage, lastMessageType, clearMessage } = useCart()
 
   // Permite volver a la vista anterior desde el detalle.
   const navigate = useNavigate()
@@ -181,10 +183,10 @@ function ProductDetail({ id }) {
   const minQuantity = activeTab === 'b2b' ? pricing.b2b?.min_order_quantity || 1 : 1
 
   // Verifica si el producto está agotado en la modalidad pública.
-  const isOutOfStock = activeTab === 'b2c' && pricing.b2c?.in_stock === false
+  const isOutOfStock = totalStock <= 0 || (activeTab === 'b2c' && pricing.b2c?.in_stock === false)
 
   // Máximo de unidades permitidas según el stock disponible.
-  const maxQuantity = totalStock > 0 ? totalStock : minQuantity
+  const maxQuantity = totalStock
 
   // Indica si la cantidad actual llegó al límite disponible.
   const isAtMaxStock = quantity >= maxQuantity
@@ -240,6 +242,17 @@ function ProductDetail({ id }) {
     ].join('\n')
     return `mailto:${QUOTE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   })()
+
+  function handleAddToCart() {
+    addItem({
+      id: objectID,
+      name: title,
+      price: discountedUnitPrice,
+      image: image_url,
+      quantity,
+      maxStock: totalStock,
+    })
+  }
 
   // Redondea la calificación para mostrar estrellas completas visualmente.
   const ratingRounded = typeof rating === 'number' ? Math.round(rating) : 0
@@ -429,11 +442,25 @@ function ProductDetail({ id }) {
                 No disponible
               </button>
             ) : (
-              <a className="btn-cta" href={quoteHref}>
-                Solicitar cotización
-              </a>
+              <>
+                <button type="button" className="btn-cta" onClick={handleAddToCart}>
+                  Agregar al carrito
+                </button>
+                <a className="btn-cta btn-cta--secondary" href={quoteHref}>
+                  Solicitar cotización
+                </a>
+              </>
             )}
           </div>
+
+          {lastMessage && (
+            <p className={`product-detail__cart-feedback product-detail__cart-feedback--${lastMessageType}`} role="status" aria-live="polite">
+              {lastMessage}
+              <button type="button" onClick={clearMessage} aria-label="Cerrar mensaje">
+                ×
+              </button>
+            </p>
+          )}
 
           <p className="product-detail__seller">Vendido por Maquinaria CR</p>
         </div>
