@@ -152,6 +152,54 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+/* Enlace del carrito con contador de unidades. */
+.cart-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: #08060d;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background-color 0.2s ease;
+}
+
+.cart-link:hover,
+.cart-link:focus-visible {
+  background: rgba(8, 6, 13, 0.1);
+}
+
+.cart-link__icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
+
+.cart-link__count {
+  position: absolute;
+  top: 0;
+  left: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #cf222e;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
 }
 
 /* Responsive ≤768px: header en dos filas con el buscador abajo. */
@@ -180,6 +228,10 @@
 
   .search-header__right {
     margin-left: 0;
+  }
+
+  .cart-link__label {
+    display: none;
   }
 }
 
