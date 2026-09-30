@@ -4,7 +4,7 @@ import { useSearchBox } from 'react-instantsearch'
 import ThemeToggle from '../../components/ThemeToggle'
 import LogoIcon from '../../components/LogoIcon'
 import CartDrawer from '../../components/CartDrawer'
-import { useCart } from '../../context/CartContext'
+import { useCart } from '../../context/useCart'
 import SearchAutocomplete from './SearchAutocomplete'
 import '../../styles/SearchHeader.css'
 

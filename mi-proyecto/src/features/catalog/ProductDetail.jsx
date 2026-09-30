@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { searchClient } from './searchClient'
 import { formatCRCParts, formatPercent } from './format'
 import RelatedProducts from './RelatedProducts'
-import { useCart } from '../../context/CartContext'
+import { useCart } from '../../context/useCart'
 import '../../styles/ProductDetail.css'
 
 // Nombre del índice de productos en Algolia.
