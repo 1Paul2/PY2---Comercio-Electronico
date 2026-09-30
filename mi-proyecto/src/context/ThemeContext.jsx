@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-
-const ThemeContext = createContext(null)
+import { useEffect, useState } from 'react'
+import { ThemeContext } from './useTheme'
 
 /**
  * Nombre: ThemeProvider
@@ -28,15 +27,4 @@ export function ThemeProvider({ children }) {
       {children}
     </ThemeContext.Provider>
   )
-}
-
-/**
- * Nombre: useTheme
- * Descripción: Accede al contexto del tema activo para leerlo o cambiarlo.
- * Entradas: No recibe parámetros.
- * Salidas: Objeto con el tema actual y la función toggleTheme.
- * Excepciones: No hay.
- */
-export function useTheme() {
-  return useContext(ThemeContext)
 }
