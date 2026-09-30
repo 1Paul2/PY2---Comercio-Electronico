@@ -5,7 +5,7 @@ import { searchClient } from '../features/catalog/searchClient'
 import { formatCRC } from '../features/catalog/format'
 import SearchHeader from '../features/catalog/SearchHeader'
 import Footer from '../components/Footer'
-import { useCart } from '../context/CartContext'
+import { useCart } from '../context/useCart'
 import '../styles/Cart.css'
 
 function CartItem({ item, increment, decrement, onRequestRemove }) {

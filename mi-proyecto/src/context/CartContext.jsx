@@ -1,31 +1,70 @@
-import { createContext, useContext, useEffect, useReducer, useMemo } from 'react'
+import { useEffect, useReducer, useMemo } from 'react'
+import { CartContext } from './useCart'
 
 /**
  * Nombre: CartContext
  * Descripción: Estado global del carrito de compras.
  *              Maneja agregar, incrementar, decrementar y eliminar productos.
  *
- * Comportamiento documentado (según punto 2.4 del enunciado):
+ * Comportamiento documentado (punto 2.4 del enunciado):
+ *   - Cada producto ocupa una sola línea, identificada por su id. Agregar un
+ *     producto que ya está en el carrito suma unidades a esa línea.
  *   - La cantidad de un producto se limita al stock máximo conocido.
- *   - Si se decrementa una línea que tiene 1 unidad, la línea se elimina.
+ *   - La cantidad nunca baja de 1. Si se presiona "−" con 1 unidad, el
+ *     producto NO se elimina ni queda en 0: la vista del carrito pide
+ *     confirmación explícita y solo se elimina si el usuario la acepta.
  *
+ * Persistencia (punto 2.9): solo se guardan los items en localStorage. Los
+ * montos (subtotal, IVA) se recalculan siempre a partir de ellos.
  */
 
-const CartContext = createContext(null)
 const CART_STORAGE_KEY = 'maquinaria-cr-cart'
+const IVA_RATE = 0.13
 
 const initialState = {
-  items: [], // { id, name, price, image, quantity }
-  lastMessage: null, // feedback descriptivo para la UI (ej: toast al agregar, o al topar el mínimo)
+  items: [],
+  lastMessage: null,
   lastMessageType: null,
+  lastAddId: 0,
 }
 
+/**
+ * Nombre: isValidStoredItem
+ * Descripción: Verifica que un item leído de localStorage tenga los datos
+ *              mínimos para mostrarse y calcular montos sin errores.
+ * Entradas: item: valor leído del almacenamiento.
+ * Salidas: true si el item es utilizable, false si debe descartarse.
+ * Excepciones: No hay.
+ */
+function isValidStoredItem(item) {
+  return (
+    item !== null &&
+    typeof item === 'object' &&
+    item.id !== undefined &&
+    item.id !== null &&
+    Number.isFinite(item.price) &&
+    item.price >= 0 &&
+    Number.isInteger(item.quantity) &&
+    item.quantity >= 1
+  )
+}
+
+/**
+ * Nombre: getInitialState
+ * Descripción: Recupera el carrito guardado en localStorage al cargar la app.
+ *              Descarta los items inválidos (por ejemplo, si el dato fue
+ *              editado a mano o viene de una versión anterior).
+ * Entradas: No recibe parámetros.
+ * Salidas: Estado inicial del reducer con los items recuperados.
+ * Excepciones: Si localStorage no está disponible o el JSON está corrupto,
+ *              devuelve un carrito vacío en vez de romper la aplicación.
+ */
 function getInitialState() {
   try {
     const storedItems = localStorage.getItem(CART_STORAGE_KEY)
     const items = storedItems ? JSON.parse(storedItems) : []
 
-    return Array.isArray(items) ? { ...initialState, items } : initialState
+    return Array.isArray(items) ? { ...initialState, items: items.filter(isValidStoredItem) } : initialState
   } catch {
     return initialState
   }
@@ -67,6 +106,7 @@ function cartReducer(state, action) {
 
         return {
           ...state,
+          lastAddId: state.lastAddId + 1,
           items: state.items.map((item) =>
             item.id === id
               ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity }
@@ -94,6 +134,7 @@ function cartReducer(state, action) {
 
       return {
         ...state,
+        lastAddId: state.lastAddId + 1,
         items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit }],
         lastMessage:
           addedQuantity < requestedQuantity
@@ -151,8 +192,6 @@ function cartReducer(state, action) {
     }
 
     case 'REMOVE_ITEM': {
-      const item = state.items.find((item) => item.id === action.payload.id)
-
       return {
         ...state,
         items: state.items.filter((item) => item.id !== action.payload.id),
@@ -177,10 +216,6 @@ function cartReducer(state, action) {
         lastMessageType: null,
       }
     }
-
-    // Para Tayler (: al recuperar el carrito de localStorage
-    // tras recargar la página, se puede despachar esta acción con los
-    // items guardados en vez de reconstruir el reducer desde cero.
     case 'HYDRATE_CART': {
       return {
         ...state,
@@ -197,7 +232,12 @@ export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, undefined, getInitialState)
 
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items))
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items))
+    } catch {
+      // Sin localStorage (modo privado o almacenamiento lleno): el carrito
+      // sigue funcionando en memoria. Este comentario evita el error no-empty.
+    }
   }, [state.items])
 
   useEffect(() => {
@@ -213,13 +253,18 @@ export function CartProvider({ children }) {
   const value = useMemo(() => {
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0)
     const subtotal = state.items.reduce((total, item) => total + calculateSubtotal(item), 0)
+    const iva = Math.round(subtotal * IVA_RATE)
+    const subtotalWithIva = subtotal + iva
 
     return {
       items: state.items,
       lastMessage: state.lastMessage,
       lastMessageType: state.lastMessageType,
+      lastAddId: state.lastAddId,
       itemCount,
       subtotal,
+      iva,
+      subtotalWithIva,
 
       addItem: (product) => dispatch({ type: 'ADD_ITEM', payload: product }),
       increment: (id) => dispatch({ type: 'INCREMENT', payload: { id } }),
@@ -234,12 +279,4 @@ export function CartProvider({ children }) {
   }, [state])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
-}
-
-export function useCart() {
-  const context = useContext(CartContext)
-  if (!context) {
-    throw new Error('useCart debe usarse dentro de un <CartProvider>')
-  }
-  return context
 }

@@ -1,22 +1,60 @@
-/* .product-card — Tarjeta de producto en la grilla del catálogo. */
+/* .product-card — Tarjeta de producto en la grilla del catálogo.
+   Mobile-first: los estilos base son los de teléfono; se amplían con
+   min-width para pantallas más grandes. No mezclar max-width en este archivo. */
+/* El <article> es solo el área que detecta el hover y NUNCA se mueve.
+   Si se elevara él mismo, con el puntero cerca del borde inferior (donde
+   está el botón) el hover se perdería y volvería en bucle: parpadeo. */
 .product-card {
   display: flex;
   flex-direction: column;
-  text-decoration: none;
-  color: inherit;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-  transition: all 0.25s ease;
-  background: var(--bg);
   height: 100%;
 }
 
-/* Hover: sombra, se eleva un poco y borde con color de acento. */
-.product-card:hover {
-  box-shadow: var(--shadow);
-  transform: translateY(-3px);
-  border-color: var(--accent);
+/* Capa visual de la tarjeta: borde, fondo, sombra y elevación. */
+.product-card__surface {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+  background: var(--bg);
+}
+
+/* Hover: sombra, se eleva un poco y borde con color de acento. Solo con
+   mouse, para que en táctiles la tarjeta no quede "levantada" tras tocarla. */
+@media (hover: hover) and (pointer: fine) {
+  .product-card:hover .product-card__surface {
+    box-shadow: var(--shadow);
+    transform: translateY(-3px);
+    border-color: var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-card__surface {
+    transition: none;
+  }
+}
+
+/* Enlace que envuelve imagen + info y navega al detalle del producto.
+   Es un elemento independiente del botón "Agregar al carrito": un <button>
+   dentro de un <a> es HTML inválido y el click activaría la navegación. */
+.product-card__link {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.product-card__link:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: -2px;
 }
 
 /* Marco de la imagen, proporción 4:3. */
@@ -124,4 +162,107 @@
 .out-of-stock {
   color: var(--danger);
   font-weight: 600;
+}
+
+/* Botón "Agregar al carrito": fuera del <Link>, ocupa todo el ancho de la
+   tarjeta y queda pegado abajo (gracias a que .product-card__link usa
+   flex: 1) sin importar cuántas líneas tenga el título. Alto mínimo de
+   44px para cumplir la zona táctil recomendada. */
+.product-card__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+/* Táctil (base): no existe el hover, así que el botón ya se ve amarillo y
+   reacciona al tocar la tarjeta o el propio botón. */
+.product-card:active .product-card__add:not(:disabled, .product-card__add--success) {
+  background: var(--brand-strong);
+}
+
+.product-card__add:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Mouse: el botón queda discreto y se "enciende" al acercarse al producto,
+   para que la acción destaque justo en la tarjeta que se está mirando.
+   Se limita a (hover: hover) para evitar el hover pegado de los táctiles. */
+@media (hover: hover) and (pointer: fine) {
+  .product-card__add:not(:disabled, .product-card__add--success) {
+    background: var(--accent-bg);
+    color: var(--text-h);
+  }
+
+  .product-card:hover .product-card__add:not(:disabled, .product-card__add--success),
+  .product-card:focus-within .product-card__add:not(:disabled, .product-card__add--success) {
+    background: var(--brand);
+    color: var(--brand-ink);
+  }
+
+  /* Sobre el propio botón: contraste invertido para confirmar la acción. */
+  .product-card .product-card__add:hover:not(:disabled, .product-card__add--success) {
+    background: var(--brand-ink);
+    color: var(--brand);
+  }
+}
+
+.product-card__add:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: -3px;
+}
+
+/* Estado deshabilitado (sin stock): legible en ambos temas, sin el
+   amarillo de marca para no sugerir que la acción está disponible. */
+.product-card__add:disabled {
+  cursor: not-allowed;
+  background: var(--code-bg);
+  color: var(--text);
+  border-top-color: var(--border);
+}
+
+/* Confirmación visual breve tras agregar el producto ("✓ Agregado").
+   También aplica si el botón quedó deshabilitado al agregar la última
+   unidad en stock, para que la confirmación se vea antes del estado límite. */
+.product-card__add--success,
+.product-card__add--success:disabled {
+  background: var(--success-bg);
+  color: var(--success);
+  border-top-color: var(--success);
+}
+
+/* Teléfono grande / horizontal: leve respiro extra en el contenido. */
+@media (min-width: 481px) {
+  .product-card__info {
+    padding: 0.85rem 1.1rem;
+  }
+}
+
+/* Tablet en adelante: tipografía un poco mayor, más cómoda de leer en
+   pantallas grandes sin afectar la base móvil. */
+@media (min-width: 769px) {
+  .product-card__title {
+    font-size: 1rem;
+  }
+
+  .product-card__price {
+    font-size: 1.1rem;
+  }
+
+  .product-card__add {
+    font-size: 0.95rem;
+  }
 }
