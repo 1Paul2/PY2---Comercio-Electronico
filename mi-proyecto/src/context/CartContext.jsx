@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useReducer, useMemo } from 'react
  * Descripción: Estado global del carrito de compras.
  *              Maneja agregar, incrementar, decrementar y eliminar productos.
  *
- * Comportamiento documentado (según punto 2.4 del enunciado):
+ * Comportamiento documentado:
  *   - La cantidad de un producto se limita al stock máximo conocido.
  *   - Si se decrementa una línea que tiene 1 unidad, la línea se elimina.
  *
@@ -13,11 +13,13 @@ import { createContext, useContext, useEffect, useReducer, useMemo } from 'react
 
 const CartContext = createContext(null)
 const CART_STORAGE_KEY = 'maquinaria-cr-cart'
+const IVA_RATE = 0.13
 
 const initialState = {
-  items: [], // { id, name, price, image, quantity }
-  lastMessage: null, // feedback descriptivo para la UI (ej: toast al agregar, o al topar el mínimo)
+  items: [],
+  lastMessage: null,
   lastMessageType: null,
+  lastAddId: 0,
 }
 
 function getInitialState() {
@@ -67,6 +69,7 @@ function cartReducer(state, action) {
 
         return {
           ...state,
+          lastAddId: state.lastAddId + 1,
           items: state.items.map((item) =>
             item.id === id
               ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity }
@@ -94,6 +97,7 @@ function cartReducer(state, action) {
 
       return {
         ...state,
+        lastAddId: state.lastAddId + 1,
         items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit }],
         lastMessage:
           addedQuantity < requestedQuantity
@@ -177,10 +181,6 @@ function cartReducer(state, action) {
         lastMessageType: null,
       }
     }
-
-    // Para Tayler (: al recuperar el carrito de localStorage
-    // tras recargar la página, se puede despachar esta acción con los
-    // items guardados en vez de reconstruir el reducer desde cero.
     case 'HYDRATE_CART': {
       return {
         ...state,
@@ -213,13 +213,18 @@ export function CartProvider({ children }) {
   const value = useMemo(() => {
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0)
     const subtotal = state.items.reduce((total, item) => total + calculateSubtotal(item), 0)
+    const iva = Math.round(subtotal * IVA_RATE)
+    const subtotalWithIva = subtotal + iva
 
     return {
       items: state.items,
       lastMessage: state.lastMessage,
       lastMessageType: state.lastMessageType,
+      lastAddId: state.lastAddId,
       itemCount,
       subtotal,
+      iva,
+      subtotalWithIva,
 
       addItem: (product) => dispatch({ type: 'ADD_ITEM', payload: product }),
       increment: (id) => dispatch({ type: 'INCREMENT', payload: { id } }),

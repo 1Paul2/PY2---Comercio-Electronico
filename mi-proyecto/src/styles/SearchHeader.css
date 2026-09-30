@@ -155,20 +155,31 @@
   gap: 12px;
 }
 
-/* Enlace del carrito con contador de unidades. */
+/* Acceso al carrito con contador de unidades. Es un <button> que abre el
+   mini carrito, salvo en /carrito donde es un <Link>; por eso se resetean
+   los estilos nativos del botón. */
 .cart-link {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 6px 10px;
+  border: none;
   border-radius: 8px;
+  background: transparent;
   color: #08060d;
+  font-family: inherit;
   text-decoration: none;
   font-size: 14px;
   font-weight: 700;
+  cursor: pointer;
   transition: background-color 0.2s ease;
+}
+
+.cart-link:focus-visible {
+  outline: 2px solid #08060d;
+  outline-offset: 2px;
 }
 
 .cart-link:hover,
@@ -200,6 +211,30 @@
   font-weight: 800;
   line-height: 1;
   pointer-events: none;
+}
+
+/* Pulso del contador al agregar un producto: refuerza la confirmación
+   visual. Se repite en cada agregado porque el span se vuelve a montar. */
+.cart-link__count--pulse {
+  animation: cart-count-pulse 0.45s ease-out;
+}
+
+@keyframes cart-count-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.45);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-link__count--pulse {
+    animation: none;
+  }
 }
 
 /* Responsive ≤768px: header en dos filas con el buscador abajo. */
