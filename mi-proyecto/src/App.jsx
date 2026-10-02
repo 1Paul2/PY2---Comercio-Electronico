@@ -6,9 +6,11 @@ import Home from './pages/Home'
 import Productos from './pages/Productos'
 import ProductoDetalle from './pages/ProductoDetalle'
 import Carrito from './pages/Carrito'
+import NotFound from './pages/NotFound'
 import { ThemeProvider } from './context/ThemeContext'
 
-/* Componente App: envuelve las rutas con ThemeProvider y define las 3 rutas. */
+/* Componente App: envuelve las rutas con ThemeProvider y define las rutas
+   de la aplicación, incluida la comodín que atiende las URL desconocidas. */
 function App() {
   return (
     <ThemeProvider>
@@ -24,6 +26,10 @@ function App() {
 
         {/* Ruta del carrito de compras. */}
         <Route path="/carrito" element={<Carrito />} />
+
+        {/* Ruta comodín: cualquier URL no declarada cae aquí en vez de
+            renderizar una página en blanco. Debe ir de última. */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </ThemeProvider>
   )

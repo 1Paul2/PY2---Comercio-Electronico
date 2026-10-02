@@ -1,0 +1,73 @@
+/* Estilos de la página 404. Reutiliza los tokens de global.css para que el
+   tema claro y el oscuro funcionen sin reglas adicionales. */
+
+.not-found {
+  display: grid;
+  place-items: center;
+  min-height: 55vh;
+  padding: 2rem 1rem;
+}
+
+.not-found__box {
+  max-width: 460px;
+  text-align: center;
+}
+
+.not-found__code {
+  margin: 0;
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--brand);
+}
+
+.not-found__box h1 {
+  margin: 0.5rem 0 0;
+  font-size: 1.75rem;
+  color: var(--text-h);
+}
+
+.not-found__text {
+  margin: 0.75rem 0 1.5rem;
+  color: var(--text);
+}
+
+/* La ruta puede ser larga y no tiene espacios donde quebrar línea: sin esto
+   desborda en pantallas angostas. */
+.not-found__text code {
+  word-break: break-all;
+}
+
+.not-found__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.not-found__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.not-found__button:hover,
+.not-found__button:focus-visible {
+  background: var(--brand-strong);
+}
+
+.not-found__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0.65rem 1rem;
+  color: var(--text-h);
+  text-decoration: underline;
+}

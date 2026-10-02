@@ -83,7 +83,7 @@ function SearchHeader({ redirectSearchTo }) {
       </div>
 
       <div className="search-header__center">
-        <SearchAutocomplete onQuery={handleQuery} />
+        <SearchAutocomplete redirectSearchTo={redirectSearchTo} onQuery={handleQuery} />
       </div>
 
       <div className="search-header__right">
