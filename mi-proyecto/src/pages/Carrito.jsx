@@ -49,7 +49,7 @@ function CartItem({ item, increment, decrement, onRequestRemove }) {
 }
 
 function CartContent() {
-  const { items, subtotal, lastMessage, lastMessageType, clearMessage, increment, decrement, removeItem } = useCart()
+  const { items, subtotal, iva, shippingCost, total, lastMessage, lastMessageType, clearMessage, increment, decrement, removeItem } = useCart()
   const [pendingRemoval, setPendingRemoval] = useState(null)
 
   function confirmRemoval() {

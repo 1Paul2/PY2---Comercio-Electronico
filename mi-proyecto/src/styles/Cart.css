@@ -181,6 +181,13 @@
   color: var(--text-h);
 }
 
+.cart-summary__row--total {
+  margin-top: 0.25rem;
+  border-top-width: 2px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
 .cart-summary__note {
   margin: 1rem 0 0;
   color: var(--text);

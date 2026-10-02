@@ -20,7 +20,19 @@ Otros comandos: `npm run lint`, `npm run build` y `npm run deploy` (publica en G
 
 El carrito usa **Context API + `useReducer`** (`src/context/CartContext.jsx`). Cualquier componente accede al carrito con el hook `useCart()` (`src/context/useCart.js`), sin pasar props entre componentes.
 
-Cada línea del carrito guarda: `id`, `name`, `price`, `image`, `quantity` y `maxStock`. El subtotal de cada línea se calcula como `price × quantity`.
+Cada línea del carrito guarda: `id`, `name`, `price`, `image`, `quantity`, `maxStock` y `weight_kg`. El subtotal de cada línea se calcula como `price × quantity`.
+
+### Estimación del envío (punto 2.7)
+
+El envío se estima con `max(₡3.500, peso total × ₡30/kg)` cuando el carrito tiene productos; un carrito vacío tiene ₡0 de envío. El peso total suma `weight_kg × quantity` por cada línea y se redondea hacia arriba al colón entero.
+
+Los parámetros de esta regla son:
+
+- Tarifa: ₡30 por kg.
+- Peso predeterminado: 5 kg por unidad cuando el producto no incluye `facets.weight_kg`.
+- Mínimo: ₡3.500 por pedido.
+
+Es una estimación para el proyecto, no una cotización de transportista: el catálogo incluye maquinaria pesada, algunos repuestos no tienen peso registrado y no se solicita destino para calcular rutas. El mínimo evita que pedidos pequeños tengan un costo logístico insignificante. No se aplica envío gratis por monto, porque el umbral tendría que superar precios de maquinaria mayores a ₡75 millones y no sería una regla útil para esa categoría. Los costos reales se deben confirmar según destino y logística disponible.
 
 ### Agregar productos
 
