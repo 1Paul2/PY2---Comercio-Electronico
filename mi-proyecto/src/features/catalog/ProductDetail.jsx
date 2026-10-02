@@ -249,6 +249,7 @@ function ProductDetail({ id }) {
       name: title,
       price: discountedUnitPrice,
       image: image_url,
+      weight_kg: facets.weight_kg,
       quantity,
       maxStock: totalStock,
     })

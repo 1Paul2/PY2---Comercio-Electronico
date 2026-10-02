@@ -51,6 +51,7 @@ function ProductCard({ hit }) {
       name: hit.title,
       price: hit.pricing?.b2c?.price_crc,
       image: hit.image_url,
+      weight_kg: hit.facets?.weight_kg,
       quantity: 1,
       maxStock: totalStock,
     })

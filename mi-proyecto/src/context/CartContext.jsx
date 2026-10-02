@@ -20,6 +20,9 @@ import { CartContext } from './useCart'
 
 const CART_STORAGE_KEY = 'maquinaria-cr-cart'
 const IVA_RATE = 0.13
+const SHIPPING_RATE_PER_KG = 30
+const DEFAULT_ITEM_WEIGHT_KG = 5
+const MIN_SHIPPING_COST = 3500
 
 const initialState = {
   items: [],
@@ -64,10 +67,22 @@ function getInitialState() {
     const storedItems = localStorage.getItem(CART_STORAGE_KEY)
     const items = storedItems ? JSON.parse(storedItems) : []
 
-    return Array.isArray(items) ? { ...initialState, items: items.filter(isValidStoredItem) } : initialState
+    return Array.isArray(items)
+      ? {
+          ...initialState,
+          items: items.filter(isValidStoredItem).map((item) => ({
+            ...item,
+            weight_kg: normalizeItemWeight(item.weight_kg),
+          })),
+        }
+      : initialState
   } catch {
     return initialState
   }
+}
+
+function normalizeItemWeight(weight_kg, fallback = DEFAULT_ITEM_WEIGHT_KG) {
+  return Number.isFinite(weight_kg) && weight_kg >= 0 ? weight_kg : fallback
 }
 
 function calculateSubtotal(item) {
@@ -85,8 +100,9 @@ function formatAddedMessage(quantity, name, isPartial = false) {
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { id, name, price, image, quantity = 1, maxStock } = action.payload
+      const { id, name, price, image, quantity = 1, maxStock, weight_kg } = action.payload
       const existing = state.items.find((item) => item.id === id)
+      const itemWeight = normalizeItemWeight(weight_kg, existing?.weight_kg)
       const requestedQuantity = Math.max(1, Math.floor(quantity))
       const stockLimit = Number.isFinite(maxStock) ? maxStock : existing?.maxStock
 
@@ -109,7 +125,7 @@ function cartReducer(state, action) {
           lastAddId: state.lastAddId + 1,
           items: state.items.map((item) =>
             item.id === id
-              ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity }
+              ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity, weight_kg: itemWeight }
               : item
           ),
           lastMessage:
@@ -135,7 +151,7 @@ function cartReducer(state, action) {
       return {
         ...state,
         lastAddId: state.lastAddId + 1,
-        items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit }],
+        items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit, weight_kg: itemWeight }],
         lastMessage:
           addedQuantity < requestedQuantity
             ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
@@ -255,6 +271,11 @@ export function CartProvider({ children }) {
     const subtotal = state.items.reduce((total, item) => total + calculateSubtotal(item), 0)
     const iva = Math.round(subtotal * IVA_RATE)
     const subtotalWithIva = subtotal + iva
+    const totalWeight = state.items.reduce((total, item) => total + item.weight_kg * item.quantity, 0)
+    const shippingCost = state.items.length === 0
+      ? 0
+      : Math.max(MIN_SHIPPING_COST, Math.ceil(totalWeight * SHIPPING_RATE_PER_KG))
+    const total = subtotalWithIva + shippingCost
 
     return {
       items: state.items,
@@ -265,6 +286,8 @@ export function CartProvider({ children }) {
       subtotal,
       iva,
       subtotalWithIva,
+      shippingCost,
+      total,
 
       addItem: (product) => dispatch({ type: 'ADD_ITEM', payload: product }),
       increment: (id) => dispatch({ type: 'INCREMENT', payload: { id } }),

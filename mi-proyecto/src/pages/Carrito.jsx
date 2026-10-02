@@ -49,7 +49,7 @@ function CartItem({ item, increment, decrement, onRequestRemove }) {
 }
 
 function CartContent() {
-  const { items, subtotal, lastMessage, lastMessageType, clearMessage, increment, decrement, removeItem } = useCart()
+  const { items, subtotal, iva, shippingCost, total, lastMessage, lastMessageType, clearMessage, increment, decrement, removeItem } = useCart()
   const [pendingRemoval, setPendingRemoval] = useState(null)
 
   function confirmRemoval() {
@@ -119,7 +119,18 @@ function CartContent() {
             <span>Subtotal</span>
             <strong>{formatCRC(subtotal)}</strong>
           </div>
-          <p className="cart-summary__note">Impuestos y envío se calcularán en el siguiente paso.</p>
+          <div className="cart-summary__row">
+            <span>IVA (13%)</span>
+            <strong>{formatCRC(iva)}</strong>
+          </div>
+          <div className="cart-summary__row">
+            <span>Envío estimado</span>
+            <strong>{formatCRC(shippingCost)}</strong>
+          </div>
+          <div className="cart-summary__row cart-summary__row--total">
+            <span>Total</span>
+            <strong>{formatCRC(total)}</strong>
+          </div>
         </aside>
       </div>
 
