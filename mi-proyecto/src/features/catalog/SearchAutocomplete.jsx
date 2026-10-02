@@ -45,6 +45,12 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
         handleQuery(state.query)
       },
       onStateChange({ state, prevState }) {
+        // Solo filtra en vivo cuando el buscador ya está sobre el catálogo.
+        // Con redirectSearchTo, navegar en cada tecla mandaba al catálogo con
+        // la PRIMERA letra escrita ("e" en vez de "excavadora") y el resto del
+        // texto se perdía al desmontarse el input. En ese caso la navegación
+        // ocurre en onSubmit (Enter) o al elegir una sugerencia.
+        if (redirectSearchTo) return
         if (state.query !== prevState.query) {
           handleQuery(state.query)
         }

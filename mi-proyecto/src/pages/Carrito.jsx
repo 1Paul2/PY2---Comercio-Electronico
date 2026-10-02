@@ -157,7 +157,7 @@ function CartContent() {
 function Carrito() {
   return (
     <InstantSearch searchClient={searchClient} indexName="grupo-07_products">
-      <SearchHeader />
+      <SearchHeader redirectSearchTo="/productos" />
       <CartContent />
       <Footer />
     </InstantSearch>
