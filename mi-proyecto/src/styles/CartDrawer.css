@@ -153,8 +153,8 @@ html:has(.cart-drawer[open]) {
   margin-bottom: 0.8rem;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 18px rgba(8, 6, 13, 0.05);
+  background: var(--bg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
 .cart-drawer__item:last-child {
@@ -221,8 +221,9 @@ html:has(.cart-drawer[open]) {
 
 .cart-drawer__label {
   font-size: 0.8rem;
-  color: var(--text);
-  opacity: 0.8;
+  color: var(--text-h);
+  opacity: 1;
+  font-weight: 500;
 }
 
 .cart-drawer__price,
