@@ -194,6 +194,27 @@
   font-size: 0.8rem;
 }
 
+.cart-summary__checkout {
+  width: 100%;
+  margin-top: 1.25rem;
+  min-height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.cart-summary__checkout:hover,
+.cart-summary__checkout:focus-visible {
+  background: var(--brand-strong);
+  transform: translateY(-1px);
+}
+
 .cart-page__feedback {
   position: fixed;
   right: 1.25rem;

@@ -55,8 +55,19 @@ function SearchHeader({ redirectSearchTo }) {
 
   useEffect(() => {
     const dialog = cartDrawerRef.current
-    if (!hasNewAdd || !dialog || dialog.open) return
-    dialog.showModal()
+    if (!hasNewAdd || !dialog) return
+
+    if (!dialog.open) {
+      dialog.showModal()
+    }
+
+    const closeTimer = window.setTimeout(() => {
+      if (dialog.open) {
+        dialog.close()
+      }
+    }, 2200)
+
+    return () => window.clearTimeout(closeTimer)
   }, [lastAddId, hasNewAdd])
 
   const handleQuery = (query) => {

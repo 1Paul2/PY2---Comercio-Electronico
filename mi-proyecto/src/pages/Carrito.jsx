@@ -64,14 +64,6 @@ function CartContent() {
         <div className="cart-empty">
           <h1>Tu carrito está vacío</h1>
           <p>Agrega productos del catálogo para comenzar tu compra.</p>
-          {lastMessage && (
-            <p className={`cart-page__feedback cart-page__feedback--${lastMessageType}`} role="status" aria-live="polite">
-              {lastMessage}
-              <button type="button" onClick={clearMessage} aria-label="Cerrar mensaje">
-                ×
-              </button>
-            </p>
-          )}
           <Link className="cart-page__button" to="/productos">
             Volver al catálogo
           </Link>
@@ -94,14 +86,6 @@ function CartContent() {
 
       <div className="cart-page__layout">
         <section className="cart-page__items" aria-label="Productos del carrito">
-          {lastMessage && (
-            <p className={`cart-page__feedback cart-page__feedback--${lastMessageType}`} role="status" aria-live="polite">
-              {lastMessage}
-              <button type="button" onClick={clearMessage} aria-label="Cerrar mensaje">
-                ×
-              </button>
-            </p>
-          )}
           {items.map((item) => (
             <CartItem
               key={item.id}
@@ -131,6 +115,9 @@ function CartContent() {
             <span>Total</span>
             <strong>{formatCRC(total)}</strong>
           </div>
+          <button type="button" className="cart-summary__checkout">
+            Finalizar compra
+          </button>
         </aside>
       </div>
 

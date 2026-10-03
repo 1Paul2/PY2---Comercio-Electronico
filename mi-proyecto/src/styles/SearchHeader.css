@@ -257,12 +257,16 @@
     order: 3;
   }
 
-  .search-header .ais-SearchBox-input {
-    font-size: 16px;
+  .search-header__right {
+    margin-left: auto;
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    order: 2;
   }
 
-  .search-header__right {
-    margin-left: 0;
+  .search-header .ais-SearchBox-input {
+    font-size: 16px;
   }
 
   .cart-link__label {
@@ -289,5 +293,10 @@
   .logo-icon {
     width: 20px;
     height: 20px;
+  }
+
+  .search-header__right {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
