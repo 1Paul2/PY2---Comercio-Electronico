@@ -9,6 +9,8 @@ import '../../styles/SearchAutocomplete.css'
 /**
  * Nombre: SearchAutocomplete
  * Descripción: Inicializa el buscador con autocompletado y sugerencias de productos.
+ * Actualiza los resultados en tiempo real con cada tecla, y vuelve al
+ * estado normal sin filtro de búsqueda cuando el campo queda vacío.
  * Entradas: redirectSearchTo: ruta de redirección opcional; onQuery: callback para manejar la búsqueda.
  * Salidas: JSX con el contenedor del autocompletado.
  * Excepciones: No hay.
@@ -22,8 +24,9 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
 
     const handleQuery = (query) => {
       const trimmed = query.trim()
-      if (!trimmed) return
+
       if (redirectSearchTo) {
+        if (!trimmed) return
         navigate(`${redirectSearchTo}?q=${encodeURIComponent(trimmed)}`)
       } else {
         onQuery?.(trimmed)
@@ -40,6 +43,17 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
       },
       onSubmit({ state }) {
         handleQuery(state.query)
+      },
+      onStateChange({ state, prevState }) {
+        // Solo filtra en vivo cuando el buscador ya está sobre el catálogo.
+        // Con redirectSearchTo, navegar en cada tecla mandaba al catálogo con
+        // la PRIMERA letra escrita ("e" en vez de "excavadora") y el resto del
+        // texto se perdía al desmontarse el input. En ese caso la navegación
+        // ocurre en onSubmit (Enter) o al elegir una sugerencia.
+        if (redirectSearchTo) return
+        if (state.query !== prevState.query) {
+          handleQuery(state.query)
+        }
       },
     })
 

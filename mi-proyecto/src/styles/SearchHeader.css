@@ -44,7 +44,10 @@
 }
 
 .logo-icon {
-  font-size: 24px;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: #08060d;
 }
 
 /* Navegación principal del header. */
@@ -149,6 +152,89 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  gap: 12px;
+}
+
+/* Acceso al carrito con contador de unidades. Es un <button> que abre el
+   mini carrito, salvo en /carrito donde es un <Link>; por eso se resetean
+   los estilos nativos del botón. */
+.cart-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #08060d;
+  font-family: inherit;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cart-link:focus-visible {
+  outline: 2px solid #08060d;
+  outline-offset: 2px;
+}
+
+.cart-link:hover,
+.cart-link:focus-visible {
+  background: rgba(8, 6, 13, 0.1);
+}
+
+.cart-link__icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
+
+.cart-link__count {
+  position: absolute;
+  top: 0;
+  left: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #cf222e;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Pulso del contador al agregar un producto: refuerza la confirmación
+   visual. Se repite en cada agregado porque el span se vuelve a montar. */
+.cart-link__count--pulse {
+  animation: cart-count-pulse 0.45s ease-out;
+}
+
+@keyframes cart-count-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.45);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-link__count--pulse {
+    animation: none;
+  }
 }
 
 /* Responsive ≤768px: header en dos filas con el buscador abajo. */
@@ -171,12 +257,20 @@
     order: 3;
   }
 
+  .search-header__right {
+    margin-left: auto;
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    order: 2;
+  }
+
   .search-header .ais-SearchBox-input {
     font-size: 16px;
   }
 
-  .search-header__right {
-    margin-left: 0;
+  .cart-link__label {
+    display: none;
   }
 }
 
@@ -197,6 +291,12 @@
   }
 
   .logo-icon {
-    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .search-header__right {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
