@@ -1,26 +1,13 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { formatCRC } from '../features/catalog/format'
 import '../styles/CartDrawer.css'
 
-/**
- * Nombre: CartDrawer
- * Descripción: Panel lateral (mini carrito) que se despliega desde la derecha
- *              con el resumen de los productos del carrito, el subtotal con
- *              IVA incluido y el acceso a la página /carrito.
- *              Usa el elemento nativo <dialog> abierto con showModal(): el
- *              navegador se encarga de atrapar el foco, cerrar con Escape,
- *              volver inerte el resto de la página y devolver el foco al
- *              botón que lo abrió, sin librerías ni lógica extra.
- * Entradas: ref: referencia al <dialog>; quien lo usa lo abre con
- *           ref.current.showModal().
- * Salidas: JSX con el panel del carrito.
- * Excepciones: No hay.
- */
 function CartDrawer({ ref }) {
   const { items, increment, decrement, removeItem, subtotalWithIva } = useCart()
   const [pendingRemoval, setPendingRemoval] = useState(null)
+  const navigate = useNavigate()
 
   function closeDrawer() {
     ref.current?.close()
@@ -39,6 +26,12 @@ function CartDrawer({ ref }) {
     if (!pendingRemoval) return
     removeItem(pendingRemoval.id)
     setPendingRemoval(null)
+  }
+
+  function handleStartCheckout() {
+    if (items.length === 0) return
+    closeDrawer()
+    navigate('/checkout')
   }
 
   return (
@@ -116,7 +109,15 @@ function CartDrawer({ ref }) {
                   <span>Subtotal (IVA incluido)</span>
                   <strong>{formatCRC(subtotalWithIva)}</strong>
                 </div>
-                <Link className="cart-drawer__primary" to="/carrito" onClick={closeDrawer}>
+                <button
+                  type="button"
+                  className="cart-drawer__primary"
+                  onClick={handleStartCheckout}
+                  disabled={items.length === 0}
+                >
+                  Iniciar checkout
+                </button>
+                <Link className="cart-drawer__secondary" to="/carrito" onClick={closeDrawer}>
                   Ir al carrito
                 </Link>
                 <button type="button" className="cart-drawer__secondary" onClick={closeDrawer}>
