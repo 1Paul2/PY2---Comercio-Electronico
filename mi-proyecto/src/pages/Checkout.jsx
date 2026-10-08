@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { formatCRC } from '../features/catalog/format'
@@ -7,6 +7,7 @@ import {
   validateBuyerForm,
   validateDeliveryForm,
 } from '../features/checkout/validation'
+import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -201,12 +202,7 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
         </select>
       </Field>
 
-      <Field
-        id="address"
-        label="Dirección exacta"
-        error={touched.address && errors.address}
-        required
-      >
+      <Field id="address" label="Dirección exacta" error={touched.address && errors.address} required>
         <textarea
           id="address"
           name="address"
@@ -304,7 +300,6 @@ function ReviewBlock({ buyer, delivery }) {
 /* ============================================================
    Panel de resumen lateral
    ============================================================ */
-
 function CheckoutSummaryPanel({ canConfirm, onConfirm }) {
   const { items, subtotal, iva, shippingCost, total, itemCount } = useCart()
 
@@ -383,8 +378,14 @@ function Checkout() {
   const { items } = useCart()
   const navigate = useNavigate()
 
-  const [buyer, setBuyer] = useState(INITIAL_BUYER)
-  const [delivery, setDelivery] = useState(INITIAL_DELIVERY)
+  const { buyerInitial, deliveryInitial, saveDraft, clearDraft } = useCheckoutPersistence(
+    INITIAL_BUYER,
+    INITIAL_DELIVERY,
+    { enabled: items.length > 0 }
+  )
+
+  const [buyer, setBuyer] = useState(buyerInitial)
+  const [delivery, setDelivery] = useState(deliveryInitial)
   const [buyerTouched, setBuyerTouched] = useState({})
   const [deliveryTouched, setDeliveryTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
@@ -395,6 +396,16 @@ function Checkout() {
   const buyerIsValid = Object.keys(buyerErrors).length === 0
   const deliveryIsValid = Object.keys(deliveryErrors).length === 0
   const canConfirm = buyerIsValid && deliveryIsValid
+
+  useEffect(() => {
+    if (items.length === 0) return
+    saveDraft(buyer, delivery)
+  }, [buyer, delivery, items.length, saveDraft])
+  useEffect(() => {
+    if (items.length === 0) {
+      clearDraft()
+    }
+  }, [items.length, clearDraft])
 
   function handleBuyerChange(field, value) {
     setBuyer((prev) => ({ ...prev, [field]: value }))
@@ -424,6 +435,7 @@ function Checkout() {
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       return
     }
+    clearDraft()
     navigate('/confirmacion')
   }
 
@@ -447,6 +459,7 @@ function Checkout() {
       <header className="checkout-page__header">
         <div className="checkout-page__header-top">
           <div className="checkout-page__heading">
+            <p className="checkout-page__eyebrow">Compra segura</p>
             <h1>Finalizar compra</h1>
           </div>
           <button
