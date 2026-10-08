@@ -70,6 +70,11 @@
   background: var(--bg);
 }
 
+.cart-summary__checkout:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .cart-item {
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr) auto;

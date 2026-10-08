@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { InstantSearch } from 'react-instantsearch'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { searchClient } from '../features/catalog/searchClient'
 import { formatCRC } from '../features/catalog/format'
 import SearchHeader from '../features/catalog/SearchHeader'
@@ -51,6 +51,14 @@ function CartItem({ item, increment, decrement, onRequestRemove }) {
 function CartContent() {
   const { items, subtotal, iva, shippingCost, total, lastMessage, lastMessageType, clearMessage, increment, decrement, removeItem } = useCart()
   const [pendingRemoval, setPendingRemoval] = useState(null)
+  const navigate = useNavigate()
+
+  function handleStartCheckout() {
+    if (items.length === 0) {
+      return
+    }
+    navigate('/checkout')
+  }
 
   function confirmRemoval() {
     if (!pendingRemoval) return
@@ -115,8 +123,14 @@ function CartContent() {
             <span>Total</span>
             <strong>{formatCRC(total)}</strong>
           </div>
-          <button type="button" className="cart-summary__checkout">
-            Finalizar compra
+          <button
+            type="button"
+            className="cart-summary__checkout"
+            onClick={handleStartCheckout}
+            disabled={items.length === 0}
+            aria-disabled={items.length === 0}
+          >
+            Iniciar checkout
           </button>
         </aside>
       </div>

@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Productos from './pages/Productos'
 import ProductoDetalle from './pages/ProductoDetalle'
 import Carrito from './pages/Carrito'
+import Checkout from './pages/Checkout'
 import NotFound from './pages/NotFound'
 import { ThemeProvider } from './context/ThemeContext'
 
@@ -26,6 +27,9 @@ function App() {
 
         {/* Ruta del carrito de compras. */}
         <Route path="/carrito" element={<Carrito />} />
+
+        {/* Ruta del checkout (se completa en la Rama 2). */}
+        <Route path="/checkout" element={<Checkout />} />
 
         {/* Ruta comodín: cualquier URL no declarada cae aquí en vez de
             renderizar una página en blanco. Debe ir de última. */}

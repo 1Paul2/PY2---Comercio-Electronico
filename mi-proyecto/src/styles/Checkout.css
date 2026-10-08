@@ -1,0 +1,41 @@
+.checkout-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.checkout-page--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.checkout-empty {
+  text-align: center;
+  max-width: 480px;
+}
+
+.checkout-empty h1 {
+  margin-bottom: 0.5rem;
+}
+
+.checkout-empty p {
+  margin-bottom: 1.5rem;
+  color: var(--text);
+}
+
+.checkout-page__button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--brand);
+  color: var(--brand-ink);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.checkout-page__button:hover {
+  background-color: var(--brand-strong);
+}
