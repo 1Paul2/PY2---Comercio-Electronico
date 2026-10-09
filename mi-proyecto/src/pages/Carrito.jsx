@@ -49,7 +49,7 @@ function CartItem({ item, increment, decrement, onRequestRemove }) {
 }
 
 function CartContent() {
-  const { items, subtotal, iva, shippingCost, total, lastMessage, lastMessageType, clearMessage, increment, decrement, removeItem } = useCart()
+  const { items, itemCount, subtotal, iva, shippingCost, total, increment, decrement, removeItem } = useCart()
   const [pendingRemoval, setPendingRemoval] = useState(null)
   const navigate = useNavigate()
 
@@ -84,8 +84,9 @@ function CartContent() {
     <main className="cart-page">
       <div className="cart-page__heading">
         <div>
-          <p className="cart-page__eyebrow">Compra</p>
-          <h1>Carrito de compras</h1>
+          <p className="cart-page__eyebrow">Tu pedido</p>
+          <h1>Resumen de compra</h1>
+          <p className="cart-page__intro">Revisa los productos, cantidades y el total de tu pedido.</p>
         </div>
         <Link className="cart-page__back" to="/productos">
           Seguir comprando
@@ -94,6 +95,10 @@ function CartContent() {
 
       <div className="cart-page__layout">
         <section className="cart-page__items" aria-label="Productos del carrito">
+          <div className="cart-page__items-heading">
+            <h2>Productos</h2>
+            <span>{itemCount} {itemCount === 1 ? 'artículo' : 'artículos'}</span>
+          </div>
           {items.map((item) => (
             <CartItem
               key={item.id}
@@ -106,7 +111,15 @@ function CartContent() {
         </section>
 
         <aside className="cart-summary" aria-label="Resumen de compra">
-          <h2>Resumen</h2>
+          <div className="cart-summary__heading">
+            <div>
+              <p className="cart-summary__eyebrow">Total del pedido</p>
+              <h2>Tu resumen</h2>
+            </div>
+            <span className="cart-summary__count" aria-label={`${itemCount} ${itemCount === 1 ? 'artículo' : 'artículos'}`}>
+              {itemCount}
+            </span>
+          </div>
           <div className="cart-summary__row">
             <span>Subtotal</span>
             <strong>{formatCRC(subtotal)}</strong>
@@ -119,10 +132,11 @@ function CartContent() {
             <span>Envío estimado</span>
             <strong>{formatCRC(shippingCost)}</strong>
           </div>
-          <div className="cart-summary__row cart-summary__row--total">
-            <span>Total</span>
+          <div className="cart-summary__total">
+            <span>Total <small>IVA incluido</small></span>
             <strong>{formatCRC(total)}</strong>
           </div>
+          <p className="cart-summary__note">El envío se estima según el peso de los productos.</p>
           <button
             type="button"
             className="cart-summary__checkout"
