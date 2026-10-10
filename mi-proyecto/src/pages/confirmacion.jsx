@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 
 function Confirmacion() {
+  // El checkout construye la orden (con su número único) al confirmar.
   const { state } = useLocation()
-  const orderNumber = state?.orderNumber
+  const orderNumber = state?.order?.orderNumber
 
   return (
     <main className="checkout-page">

@@ -9,6 +9,7 @@ import {
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
 import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
+import { buildOrder } from '../features/orders/buildOrder'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -382,7 +383,7 @@ const INITIAL_BUYER = { fullName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
 
 function Checkout() {
-  const { items } = useCart()
+  const { items, subtotal, iva, shippingCost, total } = useCart()
   const navigate = useNavigate()
 
   const { buyerInitial, deliveryInitial, saveDraft, clearDraft } = useCheckoutPersistence(
@@ -443,17 +444,24 @@ function Checkout() {
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       return
     }
-    
-    let orderNumber
+    // Se genera el número único y se construye la orden (estado PENDING).
+    // Las siguientes etapas (pago Sandbox) deben reutilizar esta orden.
+    let order
     try {
-      orderNumber = generateUniqueOrderNumber()
+      order = buildOrder({
+        orderNumber: generateUniqueOrderNumber(),
+        buyer,
+        delivery,
+        items,
+        totals: { subtotal, iva, shippingCost, total },
+      })
     } catch {
-      setSubmitError('No pudimos generar el número de tu orden. Intenta de nuevo en unos segundos.')
+      setSubmitError('No pudimos preparar tu orden. Revisa tu carrito e intenta de nuevo.')
       return
     }
     setSubmitError('')
     clearDraft()
-    navigate('/confirmacion', { state: { orderNumber } })
+    navigate('/confirmacion', { state: { order } })
   }
 
   if (items.length === 0) {
