@@ -10,6 +10,7 @@ import {
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
 import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
 import { buildOrder } from '../features/orders/buildorder'
+import { saveOrder } from '../features/orders/orderStorage'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -521,9 +522,15 @@ function Checkout() {
       setSubmitError('No pudimos preparar tu orden. Revisa tu carrito e intenta de nuevo.')
       return
     }
+    // Se persiste la orden (PENDING) antes de continuar; si no se puede
+    // guardar, no se avanza para no perder la compra.
+    if (!saveOrder(order)) {
+      setSubmitError('No pudimos guardar tu orden en este navegador. Revisa que el almacenamiento esté habilitado e intenta de nuevo.')
+      return
+    }
     setSubmitError('')
     clearDraft()
-    navigate('/confirmacion', { state: { order } })
+    navigate('/confirmacion', { state: { orderNumber: order.orderNumber } })
   }
 
   if (items.length === 0) {
