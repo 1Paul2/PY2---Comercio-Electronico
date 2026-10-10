@@ -464,6 +464,100 @@
   overflow-wrap: anywhere;
 }
 
+/* Tabla de productos en la revisión final (móvil: cada fila se apila) */
+.checkout-review__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.checkout-review__table thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.checkout-review__table tr {
+  display: block;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.checkout-review__table th[scope='row'] {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
+.checkout-review__table td {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--text-h);
+}
+
+.checkout-review__table td::before {
+  content: attr(data-label);
+  color: var(--text);
+}
+
+.checkout-review__totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 481px) {
+  .checkout-review__table thead {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .checkout-review__table th {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .checkout-review__table tr {
+    display: table-row;
+    padding: 0;
+    border: 0;
+  }
+
+  .checkout-review__table th[scope='row'] {
+    display: table-cell;
+    margin: 0;
+  }
+
+  .checkout-review__table td,
+  .checkout-review__table tbody th {
+    display: table-cell;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .checkout-review__table td::before {
+    content: none;
+  }
+
+  .checkout-review__table th:not(:first-child),
+  .checkout-review__table td {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
 /* ============================================================
    Panel de resumen (estilo Amazon)
    ============================================================ */

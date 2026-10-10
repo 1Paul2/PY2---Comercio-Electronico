@@ -8,6 +8,9 @@ import {
   validateDeliveryForm,
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
+import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
+import { buildOrder } from '../features/orders/buildorder'
+import { saveOrder } from '../features/orders/orderStorage'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -243,9 +246,71 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
    Revisión final
    ============================================================ */
 
+/**
+ * Nombre: ReviewItems
+ * Descripción: Detalle de productos de la compra para la revisión final:
+ *              producto, cantidad, precio unitario y subtotal por producto,
+ *              seguido de subtotal general, IVA, envío y total. Solo muestra
+ *              los valores que ya calcula el carrito (no recalcula nada).
+ */
+function ReviewItems() {
+  const { items, subtotal, iva, shippingCost, total } = useCart()
+
+  return (
+    <div className="checkout-review__group">
+      <h3 className="checkout-review__group-title">
+        <span className="checkout-review__icon" aria-hidden="true">✓</span>
+        Productos
+      </h3>
+
+      <table className="checkout-review__table">
+        <thead>
+          <tr>
+            <th scope="col">Producto</th>
+            <th scope="col">Cantidad</th>
+            <th scope="col">Precio unitario</th>
+            <th scope="col">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id}>
+              <th scope="row" data-label="Producto">{item.name}</th>
+              <td data-label="Cantidad">{item.quantity}</td>
+              <td data-label="Precio unitario">{formatCRC(item.price)}</td>
+              <td data-label="Subtotal">{formatCRC(item.price * item.quantity)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="checkout-review__totals">
+        <div className="checkout-summary__row">
+          <span>Subtotal</span>
+          <strong>{formatCRC(subtotal)}</strong>
+        </div>
+        <div className="checkout-summary__row">
+          <span>IVA (13%)</span>
+          <strong>{formatCRC(iva)}</strong>
+        </div>
+        <div className="checkout-summary__row">
+          <span>Costo de envío</span>
+          <strong>{formatCRC(shippingCost)}</strong>
+        </div>
+        <div className="checkout-summary__row checkout-summary__row--total">
+          <span>Total a pagar</span>
+          <strong>{formatCRC(total)}</strong>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ReviewBlock({ buyer, delivery }) {
   return (
     <div className="checkout-review">
+      <ReviewItems />
+
       <div className="checkout-review__group">
         <h3 className="checkout-review__group-title">
           <span className="checkout-review__icon" aria-hidden="true">✓</span>
@@ -300,7 +365,7 @@ function ReviewBlock({ buyer, delivery }) {
 /* ============================================================
    Panel de resumen lateral
    ============================================================ */
-function CheckoutSummaryPanel({ canConfirm, onConfirm }) {
+function CheckoutSummaryPanel({ canConfirm, onConfirm, errorMessage }) {
   const { items, subtotal, iva, shippingCost, total, itemCount } = useCart()
 
   return (
@@ -359,6 +424,12 @@ function CheckoutSummaryPanel({ canConfirm, onConfirm }) {
           Confirmar compra
         </button>
 
+        {errorMessage && (
+          <p className="checkout-field__error" role="alert">
+            <span aria-hidden="true">⚠</span> {errorMessage}
+          </p>
+        )}
+
         <p className="checkout-summary__legal">
           Al confirmar aceptas nuestros términos y condiciones.
         </p>
@@ -375,7 +446,7 @@ const INITIAL_BUYER = { fullName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
 
 function Checkout() {
-  const { items } = useCart()
+  const { items, subtotal, iva, shippingCost, total } = useCart()
   const navigate = useNavigate()
 
   const { buyerInitial, deliveryInitial, saveDraft, clearDraft } = useCheckoutPersistence(
@@ -389,6 +460,7 @@ function Checkout() {
   const [buyerTouched, setBuyerTouched] = useState({})
   const [deliveryTouched, setDeliveryTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
@@ -435,8 +507,30 @@ function Checkout() {
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       return
     }
+    // Se genera el número único y se construye la orden (estado PENDING).
+    // Las siguientes etapas (pago Sandbox) deben reutilizar esta orden.
+    let order
+    try {
+      order = buildOrder({
+        orderNumber: generateUniqueOrderNumber(),
+        buyer,
+        delivery,
+        items,
+        totals: { subtotal, iva, shippingCost, total },
+      })
+    } catch {
+      setSubmitError('No pudimos preparar tu orden. Revisa tu carrito e intenta de nuevo.')
+      return
+    }
+    // Se persiste la orden (PENDING) antes de continuar; si no se puede
+    // guardar, no se avanza para no perder la compra.
+    if (!saveOrder(order)) {
+      setSubmitError('No pudimos guardar tu orden en este navegador. Revisa que el almacenamiento esté habilitado e intenta de nuevo.')
+      return
+    }
+    setSubmitError('')
     clearDraft()
-    navigate('/confirmacion')
+    navigate('/confirmacion', { state: { orderNumber: order.orderNumber } })
   }
 
   if (items.length === 0) {
@@ -506,13 +600,13 @@ function Checkout() {
           <CheckoutSection
             number={3}
             title="Revisión final"
-            description="Revisa que todo esté correcto antes de confirmar el pago."
+            description="Revisa los productos, los montos y tus datos antes de confirmar la compra."
           >
             <ReviewBlock buyer={buyer} delivery={delivery} />
           </CheckoutSection>
         </div>
 
-        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} />
+        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} errorMessage={submitError} />
       </div>
     </main>
   )
