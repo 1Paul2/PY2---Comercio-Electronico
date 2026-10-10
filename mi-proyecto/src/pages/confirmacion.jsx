@@ -1,9 +1,17 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 function Confirmacion() {
+  const { state } = useLocation()
+  const orderNumber = state?.orderNumber
+
   return (
     <main className="checkout-page">
       <h1>Confirmación</h1>
+      {orderNumber && (
+        <p>
+          Número de orden: <strong>{orderNumber}</strong>
+        </p>
+      )}
       <p>Aquí se mostrará el resultado del pago y el resumen de la orden.</p>
       <Link to="/">Volver al inicio</Link>
     </main>

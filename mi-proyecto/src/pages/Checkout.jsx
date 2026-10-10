@@ -8,6 +8,7 @@ import {
   validateDeliveryForm,
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
+import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -300,7 +301,7 @@ function ReviewBlock({ buyer, delivery }) {
 /* ============================================================
    Panel de resumen lateral
    ============================================================ */
-function CheckoutSummaryPanel({ canConfirm, onConfirm }) {
+function CheckoutSummaryPanel({ canConfirm, onConfirm, errorMessage }) {
   const { items, subtotal, iva, shippingCost, total, itemCount } = useCart()
 
   return (
@@ -359,6 +360,12 @@ function CheckoutSummaryPanel({ canConfirm, onConfirm }) {
           Confirmar compra
         </button>
 
+        {errorMessage && (
+          <p className="checkout-field__error" role="alert">
+            <span aria-hidden="true">⚠</span> {errorMessage}
+          </p>
+        )}
+
         <p className="checkout-summary__legal">
           Al confirmar aceptas nuestros términos y condiciones.
         </p>
@@ -389,6 +396,7 @@ function Checkout() {
   const [buyerTouched, setBuyerTouched] = useState({})
   const [deliveryTouched, setDeliveryTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
@@ -435,8 +443,17 @@ function Checkout() {
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       return
     }
+    
+    let orderNumber
+    try {
+      orderNumber = generateUniqueOrderNumber()
+    } catch {
+      setSubmitError('No pudimos generar el número de tu orden. Intenta de nuevo en unos segundos.')
+      return
+    }
+    setSubmitError('')
     clearDraft()
-    navigate('/confirmacion')
+    navigate('/confirmacion', { state: { orderNumber } })
   }
 
   if (items.length === 0) {
@@ -512,7 +529,7 @@ function Checkout() {
           </CheckoutSection>
         </div>
 
-        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} />
+        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} errorMessage={submitError} />
       </div>
     </main>
   )
