@@ -9,7 +9,7 @@ import {
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
 import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
-import { buildOrder } from '../features/orders/buildOrder'
+import { buildOrder } from '../features/orders/buildorder'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -245,9 +245,71 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
    Revisión final
    ============================================================ */
 
+/**
+ * Nombre: ReviewItems
+ * Descripción: Detalle de productos de la compra para la revisión final:
+ *              producto, cantidad, precio unitario y subtotal por producto,
+ *              seguido de subtotal general, IVA, envío y total. Solo muestra
+ *              los valores que ya calcula el carrito (no recalcula nada).
+ */
+function ReviewItems() {
+  const { items, subtotal, iva, shippingCost, total } = useCart()
+
+  return (
+    <div className="checkout-review__group">
+      <h3 className="checkout-review__group-title">
+        <span className="checkout-review__icon" aria-hidden="true">✓</span>
+        Productos
+      </h3>
+
+      <table className="checkout-review__table">
+        <thead>
+          <tr>
+            <th scope="col">Producto</th>
+            <th scope="col">Cantidad</th>
+            <th scope="col">Precio unitario</th>
+            <th scope="col">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id}>
+              <th scope="row" data-label="Producto">{item.name}</th>
+              <td data-label="Cantidad">{item.quantity}</td>
+              <td data-label="Precio unitario">{formatCRC(item.price)}</td>
+              <td data-label="Subtotal">{formatCRC(item.price * item.quantity)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="checkout-review__totals">
+        <div className="checkout-summary__row">
+          <span>Subtotal</span>
+          <strong>{formatCRC(subtotal)}</strong>
+        </div>
+        <div className="checkout-summary__row">
+          <span>IVA (13%)</span>
+          <strong>{formatCRC(iva)}</strong>
+        </div>
+        <div className="checkout-summary__row">
+          <span>Costo de envío</span>
+          <strong>{formatCRC(shippingCost)}</strong>
+        </div>
+        <div className="checkout-summary__row checkout-summary__row--total">
+          <span>Total a pagar</span>
+          <strong>{formatCRC(total)}</strong>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ReviewBlock({ buyer, delivery }) {
   return (
     <div className="checkout-review">
+      <ReviewItems />
+
       <div className="checkout-review__group">
         <h3 className="checkout-review__group-title">
           <span className="checkout-review__icon" aria-hidden="true">✓</span>
@@ -531,7 +593,7 @@ function Checkout() {
           <CheckoutSection
             number={3}
             title="Revisión final"
-            description="Revisa que todo esté correcto antes de confirmar el pago."
+            description="Revisa los productos, los montos y tus datos antes de confirmar la compra."
           >
             <ReviewBlock buyer={buyer} delivery={delivery} />
           </CheckoutSection>
