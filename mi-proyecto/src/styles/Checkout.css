@@ -734,6 +734,32 @@
   line-height: 1.4;
 }
 
+.checkout-summary__trust {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--text);
+  margin-top: -0.25rem;
+}
+
+.checkout-summary__notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--danger);
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  text-align: center;
+  margin: 0;
+}
+
 /* ============================================================
    Ampliaciones (min-width) — mobile-first
    ============================================================ */
@@ -801,5 +827,320 @@
 
   .checkout-section__title {
     font-size: 1.2rem;
+  }
+}
+
+/* Banner de error del submit del checkout */
+.checkout-page__error-banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Spinner del botón "Procesando pago..." */
+.checkout-summary__spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.5rem;
+  border: 2px solid var(--brand-ink);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: checkout-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes checkout-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checkout-summary__confirm--link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  text-align: center;
+}
+
+/* ============================================================
+   Banner de resultado en confirmación
+   ============================================================ */
+
+.confirmation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.confirmation-banner__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: white;
+}
+
+.confirmation-banner__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.confirmation-banner__message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.confirmation-banner--success {
+  background-color: var(--success-bg);
+  border-color: var(--success);
+}
+.confirmation-banner--success .confirmation-banner__icon {
+  background-color: var(--success);
+}
+.confirmation-banner--success .confirmation-banner__title {
+  color: var(--success);
+}
+
+.confirmation-banner--danger {
+  background-color: var(--danger-bg);
+  border-color: var(--danger);
+}
+.confirmation-banner--danger .confirmation-banner__icon {
+  background-color: var(--danger);
+}
+.confirmation-banner--danger .confirmation-banner__title {
+  color: var(--danger);
+}
+
+.confirmation-banner--warning {
+  background-color: var(--warning-bg);
+  border-color: var(--warning);
+}
+.confirmation-banner--warning .confirmation-banner__icon {
+  background-color: var(--warning);
+}
+.confirmation-banner--warning .confirmation-banner__title {
+  color: var(--warning);
+}
+
+/* ============================================================
+   Detalles de la orden en confirmación
+   ============================================================ */
+
+.confirmation-details {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.confirmation-details__row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.confirmation-details__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.confirmation-details__row dt {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.confirmation-details__row dd {
+  margin: 0;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 481px) {
+  .confirmation-details__row {
+    grid-template-columns: 180px 1fr;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+}
+
+/* Badges de estado */
+.confirmation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  width: fit-content;
+}
+
+.confirmation-badge--success {
+  background-color: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.confirmation-badge--warning {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.confirmation-badge--danger {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+/* Botón interactivo para copiar número de orden */
+.confirmation-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 0.6rem;
+  vertical-align: middle;
+  transition: all 0.15s ease;
+}
+
+.confirmation-copy-btn:hover {
+  background-color: var(--border);
+  color: var(--text-h);
+}
+
+.confirmation-copy-btn:active {
+  transform: scale(0.96);
+}
+
+/* Tarjeta informativa de entrega estimada */
+.confirmation-delivery-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.confirmation-delivery-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  flex-shrink: 0;
+}
+
+.confirmation-delivery-card__title {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.confirmation-delivery-card__desc {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+/* Botones secundarios en el resumen */
+.checkout-summary__secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: transparent;
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  width: 100%;
+}
+
+.checkout-summary__secondary-btn:hover {
+  background-color: var(--code-bg);
+  border-color: var(--text);
+  color: var(--text-h);
+}
+
+.checkout-summary__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+}
+
+/* Estilos de impresión para comprobante */
+@media print {
+  .checkout-page__back-button,
+  .checkout-summary__actions,
+  .confirmation-copy-btn,
+  .dev-scenario-panel,
+  .checkout-stepper {
+    display: none !important;
+  }
+
+  .checkout-page {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .checkout-page__layout {
+    display: block !important;
+  }
+
+  .checkout-summary {
+    position: static !important;
+    margin-top: 2rem !important;
   }
 }

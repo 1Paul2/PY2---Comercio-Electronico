@@ -9,8 +9,181 @@ import {
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
 import { resolveScenario, setScenario as persistScenario } from '../features/payment/scenarioSelector'
+import { buildPaymentRequest } from '../features/payment/paymentContract'
+import { requestPayment } from '../features/payment/paymentClient'
+import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
+import { buildOrder } from '../features/orders/buildOrder'
+import { saveOrder, updateOrder } from '../features/orders/orderStorage'
+import { ORDER_STATUS, PAYMENT_STATUS } from '../features/orders/orderStatus'
 import DevScenarioPanel from '../components/DevScenarioPanel'
 import '../styles/Checkout.css'
+
+/* ============================================================
+   Iconos SVG en línea (estilo consistente y accesible)
+   ============================================================ */
+
+function IconCheck({ size = 18, className = '', strokeWidth = 2.5 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function IconAlertTriangle({ size = 16, className = '', strokeWidth = 2 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth={3} />
+    </svg>
+  )
+}
+
+function IconArrowLeft({ size = 16, className = '', strokeWidth = 2 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </svg>
+  )
+}
+
+function IconUser({ size = 16, className = '', strokeWidth = 2 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+function IconMapPin({ size = 16, className = '', strokeWidth = 2 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  )
+}
+
+function IconPackage({ size = 16, className = '', strokeWidth = 2 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="m7.5 4.27 9 5.15" />
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </svg>
+  )
+}
+
+function IconCartEmpty({ size = 56, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="21" r="1" />
+      <circle cx="19" cy="21" r="1" />
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+    </svg>
+  )
+}
+
+function IconLock({ size = 14, className = '', strokeWidth = 2 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  )
+}
 
 /* ============================================================
    Subcomponentes de presentación
@@ -32,12 +205,12 @@ function CheckoutStepper({ currentStep = 'checkout' }) {
   return (
     <nav className="checkout-stepper" aria-label="Progreso de la compra">
       {steps.map((step, index) => {
-        const status =
-          index < currentIndex ? 'complete' : index === currentIndex ? 'active' : 'pending'
+        const isDone = index < currentIndex
+        const status = isDone ? 'complete' : index === currentIndex ? 'active' : 'pending'
         return (
           <div key={step.id} className={`checkout-stepper__step checkout-stepper__step--${status}`}>
             <span className="checkout-stepper__bullet" aria-hidden="true">
-              {index < currentIndex ? '✓' : index + 1}
+              {isDone ? <IconCheck size={14} strokeWidth={3} /> : index + 1}
             </span>
             <span className="checkout-stepper__label">{step.label}</span>
             {index < steps.length - 1 && <span className="checkout-stepper__line" aria-hidden="true" />}
@@ -75,7 +248,7 @@ function CheckoutSection({ number, title, description, children }) {
 /**
  * Nombre: Field
  * Descripción: Campo de formulario con label alineado a la izquierda,
- *              input y mensaje de error con icono.
+ *              input y mensaje de error con icono SVG accesible.
  */
 function Field({ id, label, error, required = false, children }) {
   return (
@@ -87,7 +260,7 @@ function Field({ id, label, error, required = false, children }) {
       {children}
       {error && (
         <p id={`${id}-error`} className="checkout-field__error" role="alert">
-          <span aria-hidden="true">⚠</span> {error}
+          <IconAlertTriangle size={14} aria-hidden="true" /> {error}
         </p>
       )}
     </div>
@@ -249,8 +422,7 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
  * Nombre: ReviewItems
  * Descripción: Detalle de productos de la compra para la revisión final:
  *              producto, cantidad, precio unitario y subtotal por producto,
- *              seguido de subtotal general, IVA, envío y total. Solo muestra
- *              los valores que ya calcula el carrito (no recalcula nada).
+ *              seguido de subtotal general, IVA, envío y total.
  */
 function ReviewItems() {
   const { items, subtotal, iva, shippingCost, total } = useCart()
@@ -258,8 +430,10 @@ function ReviewItems() {
   return (
     <div className="checkout-review__group">
       <h3 className="checkout-review__group-title">
-        <span className="checkout-review__icon" aria-hidden="true">✓</span>
-        Productos
+        <span className="checkout-review__icon" aria-hidden="true">
+          <IconPackage size={12} strokeWidth={2.5} />
+        </span>
+        Productos ({items.length})
       </h3>
 
       <table className="checkout-review__table">
@@ -294,7 +468,7 @@ function ReviewItems() {
         </div>
         <div className="checkout-summary__row">
           <span>Costo de envío</span>
-          <strong>{formatCRC(shippingCost)}</strong>
+          <strong>{shippingCost === 0 ? 'Gratis' : formatCRC(shippingCost)}</strong>
         </div>
         <div className="checkout-summary__row checkout-summary__row--total">
           <span>Total a pagar</span>
@@ -305,15 +479,25 @@ function ReviewItems() {
   )
 }
 
-function ReviewBlock({ buyer, delivery }) {
+function ReviewBlock({ buyer, delivery, buyerIsValid, deliveryIsValid }) {
   return (
     <div className="checkout-review">
       <ReviewItems />
 
       <div className="checkout-review__group">
         <h3 className="checkout-review__group-title">
-          <span className="checkout-review__icon" aria-hidden="true">✓</span>
+          <span className="checkout-review__icon" aria-hidden="true">
+            <IconUser size={12} strokeWidth={2.5} />
+          </span>
           Comprador
+          {buyerIsValid && (
+            <span
+              className="confirmation-badge confirmation-badge--success"
+              style={{ marginLeft: 'auto', fontSize: '0.72rem', padding: '0.1rem 0.5rem' }}
+            >
+              Completado
+            </span>
+          )}
         </h3>
         <dl className="checkout-review__list">
           <div className="checkout-review__row">
@@ -333,8 +517,18 @@ function ReviewBlock({ buyer, delivery }) {
 
       <div className="checkout-review__group">
         <h3 className="checkout-review__group-title">
-          <span className="checkout-review__icon" aria-hidden="true">✓</span>
+          <span className="checkout-review__icon" aria-hidden="true">
+            <IconMapPin size={12} strokeWidth={2.5} />
+          </span>
           Entrega
+          {deliveryIsValid && (
+            <span
+              className="confirmation-badge confirmation-badge--success"
+              style={{ marginLeft: 'auto', fontSize: '0.72rem', padding: '0.1rem 0.5rem' }}
+            >
+              Completado
+            </span>
+          )}
         </h3>
         <dl className="checkout-review__list">
           <div className="checkout-review__row">
@@ -361,10 +555,14 @@ function ReviewBlock({ buyer, delivery }) {
   )
 }
 
-/* ============================================================
-   Panel de resumen lateral
-   ============================================================ */
-function CheckoutSummaryPanel({ canConfirm, onConfirm, errorMessage }) {
+function CheckoutSummaryPanel({
+  canConfirm,
+  onConfirm,
+  processing,
+  processingStage,
+  submitAttempted,
+  missingCount,
+}) {
   const { items, subtotal, iva, shippingCost, total, itemCount } = useCart()
 
   return (
@@ -380,7 +578,12 @@ function CheckoutSummaryPanel({ canConfirm, onConfirm, errorMessage }) {
         <ul className="checkout-summary__items">
           {items.map((item) => (
             <li key={item.id} className="checkout-summary__item">
-              <img className="checkout-summary__image" src={item.image} alt="" loading="lazy" />
+              <img
+                className="checkout-summary__image"
+                src={item.image}
+                alt={item.name}
+                loading="lazy"
+              />
               <div className="checkout-summary__item-info">
                 <p className="checkout-summary__item-name">{item.name}</p>
                 <p className="checkout-summary__item-meta">
@@ -405,32 +608,49 @@ function CheckoutSummaryPanel({ canConfirm, onConfirm, errorMessage }) {
           </div>
           <div className="checkout-summary__row">
             <span>Envío</span>
-            <strong>{formatCRC(shippingCost)}</strong>
+            <strong>{shippingCost === 0 ? 'Gratis' : formatCRC(shippingCost)}</strong>
           </div>
           <div className="checkout-summary__row checkout-summary__row--total">
-            <span>Total</span>
+            <span>Total a pagar</span>
             <strong>{formatCRC(total)}</strong>
           </div>
         </div>
+
+        {submitAttempted && !canConfirm && missingCount > 0 && (
+          <p className="checkout-summary__notice" role="alert">
+            <IconAlertTriangle size={14} /> Faltan {missingCount}{' '}
+            {missingCount === 1 ? 'campo obligatorio' : 'campos obligatorios'}
+          </p>
+        )}
 
         <button
           type="button"
           className="checkout-summary__confirm"
           onClick={onConfirm}
-          disabled={!canConfirm}
-          aria-disabled={!canConfirm}
+          disabled={processing}
+          aria-disabled={processing}
         >
-          Confirmar compra
+          {processing ? (
+            <>
+              <span className="checkout-summary__spinner" aria-hidden="true" />
+              {processingStage === 'building'
+                ? 'Preparando orden...'
+                : processingStage === 'paying'
+                  ? 'Procesando pago seguro...'
+                  : 'Procesando...'}
+            </>
+          ) : (
+            'Confirmar compra'
+          )}
         </button>
 
-        {errorMessage && (
-          <p className="checkout-field__error" role="alert">
-            <span aria-hidden="true">⚠</span> {errorMessage}
-          </p>
-        )}
+        <div className="checkout-summary__trust">
+          <IconLock size={14} />
+          <span>Pago 100% cifrado y seguro (Sandbox)</span>
+        </div>
 
         <p className="checkout-summary__legal">
-          Al confirmar aceptas nuestros términos y condiciones.
+          Al confirmar aceptas nuestros términos y condiciones de compra.
         </p>
       </div>
     </aside>
@@ -445,9 +665,10 @@ const INITIAL_BUYER = { fullName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
 
 function Checkout() {
-  const { items } = useCart()
+  const { items, subtotal, iva, shippingCost, total } = useCart()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
   const [scenario, setScenarioState] = useState(() => {
     const resolved = resolveScenario(searchParams.get('scenario'))
     if (searchParams.get('scenario')) {
@@ -471,13 +692,18 @@ function Checkout() {
   const [buyerTouched, setBuyerTouched] = useState({})
   const [deliveryTouched, setDeliveryTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [processingStage, setProcessingStage] = useState(null)
+  const [submitError, setSubmitError] = useState(null)
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
 
   const buyerIsValid = Object.keys(buyerErrors).length === 0
   const deliveryIsValid = Object.keys(deliveryErrors).length === 0
-  const canConfirm = buyerIsValid && deliveryIsValid
+  const canConfirm = buyerIsValid && deliveryIsValid && !processing
+
+  const missingCount = Object.keys(buyerErrors).length + Object.keys(deliveryErrors).length
 
   useEffect(() => {
     if (items.length === 0) return
@@ -511,22 +737,98 @@ function Checkout() {
     setDeliveryTouched((prev) => ({ ...prev, [field]: true }))
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     setSubmitAttempted(true)
+    setSubmitError(null)
+
     if (!canConfirm) {
       setBuyerTouched({ fullName: true, email: true, phone: true })
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       return
     }
+
+    setProcessing(true)
+    setProcessingStage('building')
+
+    let order
+    try {
+      const orderNumber = generateUniqueOrderNumber()
+      order = buildOrder({
+        orderNumber,
+        buyer,
+        delivery,
+        items: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          image: item.image,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        totals: { subtotal, iva, shippingCost, total },
+      })
+    } catch {
+      setProcessing(false)
+      setProcessingStage(null)
+      setSubmitError(
+        'Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.'
+      )
+      return
+    }
+
+    const saved = saveOrder(order)
+    if (!saved) {
+      setProcessing(false)
+      setProcessingStage(null)
+      setSubmitError(
+        'No pudimos registrar tu orden. Inténtalo de nuevo en unos segundos.'
+      )
+      return
+    }
+
+    setProcessingStage('paying')
+    const paymentRequest = buildPaymentRequest(order, scenario)
+    const paymentResponse = await requestPayment(paymentRequest)
+    let orderStatus
+    if (paymentResponse.result === 'PAYMENT_APPROVED') {
+      orderStatus = ORDER_STATUS.CONFIRMED
+    } else if (paymentResponse.result === 'PAYMENT_DECLINED') {
+      orderStatus = ORDER_STATUS.FAILED
+    } else {
+      orderStatus = ORDER_STATUS.PENDING
+    }
+
+    const paymentStatus =
+      paymentResponse.result === 'PAYMENT_APPROVED'
+        ? PAYMENT_STATUS.APPROVED
+        : paymentResponse.result === 'PAYMENT_DECLINED'
+          ? PAYMENT_STATUS.DECLINED
+          : PAYMENT_STATUS.ERROR
+
+    updateOrder(order.orderNumber, {
+      orderStatus,
+      paymentStatus,
+      payment: {
+        transactionId: paymentResponse.transactionId,
+        reasonCode: paymentResponse.reasonCode,
+        message: paymentResponse.message,
+        processedAt: paymentResponse.processedAt,
+      },
+    })
     clearDraft()
-    navigate('/confirmacion', { state: { scenario } })
+    setProcessing(false)
+    setProcessingStage(null)
+    navigate('/confirmacion', {
+      state: { orderNumber: order.orderNumber, scenario },
+    })
   }
 
   if (items.length === 0) {
     return (
       <main className="checkout-page checkout-page--empty">
         <div className="checkout-empty">
-          <div className="checkout-empty__icon" aria-hidden="true">🛒</div>
+          <div className="checkout-empty__icon" aria-hidden="true">
+            <IconCartEmpty size={60} />
+          </div>
           <h1>No hay productos para comprar</h1>
           <p>Agrega al menos un producto al carrito antes de iniciar el checkout.</p>
           <Link className="checkout-page__button" to="/productos">
@@ -542,19 +844,26 @@ function Checkout() {
       <header className="checkout-page__header">
         <div className="checkout-page__header-top">
           <div className="checkout-page__heading">
-            <p className="checkout-page__eyebrow">Compra segura</p>
+            <p className="checkout-page__eyebrow">Paso 2 de 3 · Compra segura</p>
             <h1>Finalizar compra</h1>
           </div>
           <button
             type="button"
             className="checkout-page__back-button"
             onClick={() => navigate('/carrito')}
+            disabled={processing}
           >
-            <span aria-hidden="true">←</span> Volver al carrito
+            <IconArrowLeft size={16} aria-hidden="true" /> Volver al carrito
           </button>
         </div>
         <CheckoutStepper currentStep="checkout" />
       </header>
+
+      {submitError && (
+        <div className="checkout-page__error-banner" role="alert">
+          <IconAlertTriangle size={18} aria-hidden="true" /> {submitError}
+        </div>
+      )}
 
       <div className="checkout-page__layout">
         <div className="checkout-page__main">
@@ -591,12 +900,25 @@ function Checkout() {
             title="Revisión final"
             description="Revisa que todo esté correcto antes de confirmar el pago."
           >
-            <ReviewBlock buyer={buyer} delivery={delivery} />
+            <ReviewBlock
+              buyer={buyer}
+              delivery={delivery}
+              buyerIsValid={buyerIsValid}
+              deliveryIsValid={deliveryIsValid}
+            />
           </CheckoutSection>
         </div>
 
-        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} />
+        <CheckoutSummaryPanel
+          canConfirm={canConfirm}
+          onConfirm={handleConfirm}
+          processing={processing}
+          processingStage={processingStage}
+          submitAttempted={submitAttempted}
+          missingCount={missingCount}
+        />
       </div>
+
       <DevScenarioPanel currentScenario={scenario} onChange={handleScenarioChange} />
     </main>
   )
