@@ -3,11 +3,10 @@ import {
   buildErrorResponse,
   normalizePaymentResponse,
   validatePaymentRequest,
-} from './paymentcontract'
-import { processPayment } from './paymentsandbox'
+} from './paymentContract'
+import { processPayment } from './paymentSandbox'
 
 const DEFAULT_TIMEOUT_MS = 8000
-
 const inFlight = new Map()
 
 /**
@@ -24,10 +23,18 @@ function withTimeout(promise, ms) {
 
 /**
  * Nombre: requestPayment
- * Descripción: Envía la solicitud de pago al servicio y devuelve el resultado.
- * Entradas: request: PaymentRequest;
- *           options.service (opcional): función de servicio alterna;
- *           options.timeoutMs (opcional): espera máxima, por defecto 8 s.
+ * Descripción: Envía la solicitud de pago al servicio y devuelve el
+ *              resultado. Se encarga de:
+ *                - Validar el request antes de enviarlo (si es inválido,
+ *                  devuelve PAYMENT_ERROR sin llamar al servicio).
+ *                - Deducplicar solicitudes en vuelo por orderId.
+ *                - Aplicar un timeout (por defecto 8 s).
+ *                - Normalizar la respuesta: si el servicio lanza o
+ *                  devuelve algo inválido, se transforma en PAYMENT_ERROR.
+ * Entradas:
+ *   - request: PaymentRequest.
+ *   - options.service (opcional): función de servicio alterna (para tests).
+ *   - options.timeoutMs (opcional): espera máxima, por defecto 8 s.
  * Salidas: Promesa con PaymentResponse válida (nunca se rechaza).
  * Excepciones: No lanza; los fallos se devuelven como PAYMENT_ERROR.
  */
