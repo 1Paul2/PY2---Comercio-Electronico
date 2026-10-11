@@ -803,3 +803,163 @@
     font-size: 1.2rem;
   }
 }
+
+/* Banner de error del submit del checkout */
+.checkout-page__error-banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Spinner del botón "Procesando pago..." */
+.checkout-summary__spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.5rem;
+  border: 2px solid var(--brand-ink);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: checkout-spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes checkout-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checkout-summary__confirm--link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  text-align: center;
+}
+
+/* ============================================================
+   Banner de resultado en confirmación
+   ============================================================ */
+
+.confirmation-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.confirmation-banner__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: white;
+}
+
+.confirmation-banner__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.confirmation-banner__message {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.confirmation-banner--success {
+  background-color: var(--success-bg);
+  border-color: var(--success);
+}
+.confirmation-banner--success .confirmation-banner__icon {
+  background-color: var(--success);
+}
+.confirmation-banner--success .confirmation-banner__title {
+  color: var(--success);
+}
+
+.confirmation-banner--danger {
+  background-color: var(--danger-bg);
+  border-color: var(--danger);
+}
+.confirmation-banner--danger .confirmation-banner__icon {
+  background-color: var(--danger);
+}
+.confirmation-banner--danger .confirmation-banner__title {
+  color: var(--danger);
+}
+
+.confirmation-banner--warning {
+  background-color: var(--warning-bg);
+  border-color: var(--warning);
+}
+.confirmation-banner--warning .confirmation-banner__icon {
+  background-color: var(--warning);
+}
+.confirmation-banner--warning .confirmation-banner__title {
+  color: var(--warning);
+}
+
+/* ============================================================
+   Detalles de la orden en confirmación
+   ============================================================ */
+
+.confirmation-details {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.confirmation-details__row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.confirmation-details__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.confirmation-details__row dt {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.confirmation-details__row dd {
+  margin: 0;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 481px) {
+  .confirmation-details__row {
+    grid-template-columns: 180px 1fr;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+}

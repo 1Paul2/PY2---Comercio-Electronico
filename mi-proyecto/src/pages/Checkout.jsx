@@ -9,6 +9,12 @@ import {
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
 import { resolveScenario, setScenario as persistScenario } from '../features/payment/scenarioSelector'
+import { buildPaymentRequest } from '../features/payment/paymentContract'
+import { requestPayment } from '../features/payment/paymentClient'
+import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
+import { buildOrder } from '../features/orders/buildOrder'
+import { saveOrder, updateOrder } from '../features/orders/orderStorage'
+import { ORDER_STATUS, PAYMENT_STATUS } from '../features/orders/orderStatus'
 import DevScenarioPanel from '../components/DevScenarioPanel'
 import '../styles/Checkout.css'
 
@@ -361,10 +367,7 @@ function ReviewBlock({ buyer, delivery }) {
   )
 }
 
-/* ============================================================
-   Panel de resumen lateral
-   ============================================================ */
-function CheckoutSummaryPanel({ canConfirm, onConfirm, errorMessage }) {
+function CheckoutSummaryPanel({ canConfirm, onConfirm, processing }) {
   const { items, subtotal, iva, shippingCost, total, itemCount } = useCart()
 
   return (
@@ -417,17 +420,18 @@ function CheckoutSummaryPanel({ canConfirm, onConfirm, errorMessage }) {
           type="button"
           className="checkout-summary__confirm"
           onClick={onConfirm}
-          disabled={!canConfirm}
-          aria-disabled={!canConfirm}
+          disabled={!canConfirm || processing}
+          aria-disabled={!canConfirm || processing}
         >
-          Confirmar compra
+          {processing ? (
+            <>
+              <span className="checkout-summary__spinner" aria-hidden="true" />
+              Procesando pago...
+            </>
+          ) : (
+            'Confirmar compra'
+          )}
         </button>
-
-        {errorMessage && (
-          <p className="checkout-field__error" role="alert">
-            <span aria-hidden="true">⚠</span> {errorMessage}
-          </p>
-        )}
 
         <p className="checkout-summary__legal">
           Al confirmar aceptas nuestros términos y condiciones.
@@ -445,9 +449,10 @@ const INITIAL_BUYER = { fullName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
 
 function Checkout() {
-  const { items } = useCart()
+  const { items, subtotal, iva, shippingCost, total } = useCart()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
   const [scenario, setScenarioState] = useState(() => {
     const resolved = resolveScenario(searchParams.get('scenario'))
     if (searchParams.get('scenario')) {
@@ -471,13 +476,16 @@ function Checkout() {
   const [buyerTouched, setBuyerTouched] = useState({})
   const [deliveryTouched, setDeliveryTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [processingStage, setProcessingStage] = useState(null)
+  const [submitError, setSubmitError] = useState(null)
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
 
   const buyerIsValid = Object.keys(buyerErrors).length === 0
   const deliveryIsValid = Object.keys(deliveryErrors).length === 0
-  const canConfirm = buyerIsValid && deliveryIsValid
+  const canConfirm = buyerIsValid && deliveryIsValid && !processing
 
   useEffect(() => {
     if (items.length === 0) return
@@ -511,15 +519,89 @@ function Checkout() {
     setDeliveryTouched((prev) => ({ ...prev, [field]: true }))
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     setSubmitAttempted(true)
+    setSubmitError(null)
+
     if (!canConfirm) {
       setBuyerTouched({ fullName: true, email: true, phone: true })
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       return
     }
+
+    setProcessing(true)
+    setProcessingStage('building')
+
+    let order
+    try {
+      const orderNumber = generateUniqueOrderNumber()
+      order = buildOrder({
+        orderNumber,
+        buyer,
+        delivery,
+        items: items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          image: item.image,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        totals: { subtotal, iva, shippingCost, total },
+      })
+    } catch (err) {
+      setProcessing(false)
+      setProcessingStage(null)
+      setSubmitError(
+        'Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.'
+      )
+      return
+    }
+
+    const saved = saveOrder(order)
+    if (!saved) {
+      setProcessing(false)
+      setProcessingStage(null)
+      setSubmitError(
+        'No pudimos registrar tu orden. Inténtalo de nuevo en unos segundos.'
+      )
+      return
+    }
+
+    setProcessingStage('paying')
+    const paymentRequest = buildPaymentRequest(order, scenario)
+    const paymentResponse = await requestPayment(paymentRequest)
+    let orderStatus
+    if (paymentResponse.result === 'PAYMENT_APPROVED') {
+      orderStatus = ORDER_STATUS.CONFIRMED
+    } else if (paymentResponse.result === 'PAYMENT_DECLINED') {
+      orderStatus = ORDER_STATUS.FAILED
+    } else {
+      orderStatus = ORDER_STATUS.PENDING
+    }
+
+    const paymentStatus =
+      paymentResponse.result === 'PAYMENT_APPROVED'
+        ? PAYMENT_STATUS.APPROVED
+        : paymentResponse.result === 'PAYMENT_DECLINED'
+          ? PAYMENT_STATUS.DECLINED
+          : PAYMENT_STATUS.ERROR
+
+    updateOrder(order.orderNumber, {
+      orderStatus,
+      paymentStatus,
+      payment: {
+        transactionId: paymentResponse.transactionId,
+        reasonCode: paymentResponse.reasonCode,
+        message: paymentResponse.message,
+        processedAt: paymentResponse.processedAt,
+      },
+    })
     clearDraft()
-    navigate('/confirmacion', { state: { scenario } })
+    setProcessing(false)
+    setProcessingStage(null)
+    navigate('/confirmacion', {
+      state: { orderNumber: order.orderNumber, scenario },
+    })
   }
 
   if (items.length === 0) {
@@ -549,12 +631,19 @@ function Checkout() {
             type="button"
             className="checkout-page__back-button"
             onClick={() => navigate('/carrito')}
+            disabled={processing}
           >
             <span aria-hidden="true">←</span> Volver al carrito
           </button>
         </div>
         <CheckoutStepper currentStep="checkout" />
       </header>
+
+      {submitError && (
+        <div className="checkout-page__error-banner" role="alert">
+          <span aria-hidden="true">⚠</span> {submitError}
+        </div>
+      )}
 
       <div className="checkout-page__layout">
         <div className="checkout-page__main">
@@ -595,8 +684,13 @@ function Checkout() {
           </CheckoutSection>
         </div>
 
-        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} />
+        <CheckoutSummaryPanel
+          canConfirm={canConfirm}
+          onConfirm={handleConfirm}
+          processing={processing}
+        />
       </div>
+
       <DevScenarioPanel currentScenario={scenario} onChange={handleScenarioChange} />
     </main>
   )
