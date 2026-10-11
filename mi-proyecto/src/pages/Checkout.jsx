@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { formatCRC } from '../features/catalog/format'
 import { PROVINCES, CANTONS_BY_PROVINCE } from '../features/checkout/costaRicaLocations'
@@ -8,9 +8,8 @@ import {
   validateDeliveryForm,
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
-import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
-import { buildOrder } from '../features/orders/buildorder'
-import { saveOrder } from '../features/orders/orderStorage'
+import { resolveScenario, setScenario as persistScenario } from '../features/payment/scenarioSelector'
+import DevScenarioPanel from '../components/DevScenarioPanel'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -446,8 +445,20 @@ const INITIAL_BUYER = { fullName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
 
 function Checkout() {
-  const { items, subtotal, iva, shippingCost, total } = useCart()
+  const { items } = useCart()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [scenario, setScenarioState] = useState(() => {
+    const resolved = resolveScenario(searchParams.get('scenario'))
+    if (searchParams.get('scenario')) {
+      persistScenario(resolved)
+    }
+    return resolved
+  })
+
+  function handleScenarioChange(newScenario) {
+    setScenarioState(newScenario)
+  }
 
   const { buyerInitial, deliveryInitial, saveDraft, clearDraft } = useCheckoutPersistence(
     INITIAL_BUYER,
@@ -460,7 +471,6 @@ function Checkout() {
   const [buyerTouched, setBuyerTouched] = useState({})
   const [deliveryTouched, setDeliveryTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
-  const [submitError, setSubmitError] = useState('')
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
@@ -473,6 +483,7 @@ function Checkout() {
     if (items.length === 0) return
     saveDraft(buyer, delivery)
   }, [buyer, delivery, items.length, saveDraft])
+
   useEffect(() => {
     if (items.length === 0) {
       clearDraft()
@@ -507,30 +518,8 @@ function Checkout() {
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       return
     }
-    // Se genera el número único y se construye la orden (estado PENDING).
-    // Las siguientes etapas (pago Sandbox) deben reutilizar esta orden.
-    let order
-    try {
-      order = buildOrder({
-        orderNumber: generateUniqueOrderNumber(),
-        buyer,
-        delivery,
-        items,
-        totals: { subtotal, iva, shippingCost, total },
-      })
-    } catch {
-      setSubmitError('No pudimos preparar tu orden. Revisa tu carrito e intenta de nuevo.')
-      return
-    }
-    // Se persiste la orden (PENDING) antes de continuar; si no se puede
-    // guardar, no se avanza para no perder la compra.
-    if (!saveOrder(order)) {
-      setSubmitError('No pudimos guardar tu orden en este navegador. Revisa que el almacenamiento esté habilitado e intenta de nuevo.')
-      return
-    }
-    setSubmitError('')
     clearDraft()
-    navigate('/confirmacion', { state: { orderNumber: order.orderNumber } })
+    navigate('/confirmacion', { state: { scenario } })
   }
 
   if (items.length === 0) {
@@ -600,14 +589,15 @@ function Checkout() {
           <CheckoutSection
             number={3}
             title="Revisión final"
-            description="Revisa los productos, los montos y tus datos antes de confirmar la compra."
+            description="Revisa que todo esté correcto antes de confirmar el pago."
           >
             <ReviewBlock buyer={buyer} delivery={delivery} />
           </CheckoutSection>
         </div>
 
-        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} errorMessage={submitError} />
+        <CheckoutSummaryPanel canConfirm={canConfirm} onConfirm={handleConfirm} />
       </div>
+      <DevScenarioPanel currentScenario={scenario} onChange={handleScenarioChange} />
     </main>
   )
 }
