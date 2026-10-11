@@ -1,0 +1,67 @@
+/* DevScenarioPanel.css — Panel flotante solo para demos en desarrollo. */
+
+.dev-scenario-panel {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  max-width: 260px;
+  font-family: inherit;
+}
+
+.dev-scenario-panel__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-h);
+}
+
+.dev-scenario-panel__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dev-scenario-panel__option {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-h);
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  min-height: 36px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.dev-scenario-panel__option:hover {
+  border-color: var(--accent);
+}
+
+.dev-scenario-panel__option--success.dev-scenario-panel__option--active {
+  background-color: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.dev-scenario-panel__option--danger.dev-scenario-panel__option--active {
+  background-color: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.dev-scenario-panel__option--warning.dev-scenario-panel__option--active {
+  background-color: var(--warning-bg);
+  border-color: var(--warning);
+  color: var(--warning);
+}
