@@ -19,6 +19,11 @@ function CartItem({ item, increment, decrement, onRequestRemove }) {
         <h2>{item.name}</h2>
         <p>Precio unitario: {formatCRC(item.price)}</p>
         <p className="cart-item__subtotal">Subtotal: {formatCRC(item.price * item.quantity)}</p>
+        {isAtStockLimit && (
+          <p className="cart-item__stock-note" role="status">
+            Alcanzaste el máximo disponible ({item.maxStock} {item.maxStock === 1 ? 'unidad' : 'unidades'}).
+          </p>
+        )}
       </div>
 
       <div className="cart-item__actions">
