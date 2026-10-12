@@ -34,7 +34,9 @@ function readScenarioFromStorage() {
 function writeScenarioToStorage(scenario) {
   try {
     sessionStorage.setItem(SCENARIO_STORAGE_KEY, scenario)
-  } catch { }
+  } catch {
+    // Sin sessionStorage el escenario se mantiene solo en memoria.
+  }
 }
 
 /**
@@ -45,7 +47,9 @@ function writeScenarioToStorage(scenario) {
 export function clearScenario() {
   try {
     sessionStorage.removeItem(SCENARIO_STORAGE_KEY)
-  } catch { }
+  } catch {
+    // Si el almacenamiento no está disponible no hay nada que limpiar.
+  }
 }
 
 /**

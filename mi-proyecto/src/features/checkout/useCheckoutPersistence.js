@@ -72,6 +72,7 @@ function writeDraft(buyer, delivery) {
       JSON.stringify({ buyer, delivery, savedAt: Date.now() })
     )
   } catch {
+    // Sin sessionStorage el checkout sigue funcionando en memoria.
   }
 }
 
@@ -84,6 +85,7 @@ export function clearCheckoutDraft() {
   try {
     sessionStorage.removeItem(DRAFT_STORAGE_KEY)
   } catch {
+    // Si el almacenamiento no está disponible no hay nada que limpiar.
   }
 }
 
