@@ -257,6 +257,12 @@ html:has(.cart-drawer[open]) {
   cursor: pointer;
 }
 
+/* "+" deshabilitado al llegar al stock máximo, igual que en la página del carrito. */
+.cart-drawer__quantity button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .cart-drawer__quantity span {
   min-width: 1.1rem;
   text-align: center;

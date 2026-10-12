@@ -89,7 +89,12 @@ function CartDrawer({ ref }) {
                             −
                           </button>
                           <span>{item.quantity}</span>
-                          <button type="button" onClick={() => increment(item.id)} aria-label={`Aumentar cantidad de ${item.name}`}>
+                          <button
+                            type="button"
+                            onClick={() => increment(item.id)}
+                            disabled={Number.isFinite(item.maxStock) && item.quantity >= item.maxStock}
+                            aria-label={`Aumentar cantidad de ${item.name}`}
+                          >
                             +
                           </button>
                         </div>

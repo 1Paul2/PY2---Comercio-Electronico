@@ -532,3 +532,10 @@
     font-size: 1rem;
   }
 }
+
+/* Aviso cuando la cantidad llegó al stock disponible. */
+.cart-item__stock-note {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--warning);
+}

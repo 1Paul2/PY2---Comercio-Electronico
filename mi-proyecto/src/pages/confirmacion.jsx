@@ -1,12 +1,16 @@
-import { useCallback, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { getOrder, getLastOrder, updateOrder } from '../features/orders/orderStorage'
+import { useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { useCart } from '../context/useCart'
+import { getOrder, getLastOrder } from '../features/orders/orderStorage'
 import { ORDER_STATUS, PAYMENT_STATUS } from '../features/orders/orderStatus'
-import { buildPaymentRequest } from '../features/payment/paymentContract'
+import { applyPaymentResult, isOrderPayable } from '../features/orders/applyPaymentResult'
+import { clearCheckoutDraft } from '../features/checkout/useCheckoutPersistence'
+import { PAYMENT_RESULT, buildPaymentRequest } from '../features/payment/paymentContract'
 import { requestPayment } from '../features/payment/paymentClient'
 import { resolveScenario } from '../features/payment/scenarioSelector'
 import { formatCRC } from '../features/catalog/format'
 import DevScenarioPanel from '../components/DevScenarioPanel'
+import PurchaseReceipt from '../components/PurchaseReceipt'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -334,71 +338,86 @@ function getOutcome(order) {
 
 function Confirmacion() {
   const { state } = useLocation()
-  const navigate = useNavigate()
+  const { clearCart, items: cartItems } = useCart()
 
-  const order = (state?.orderNumber && getOrder(state.orderNumber)) || getLastOrder()
-
+  // La orden se lee una sola vez al montar; luego vive en el estado para que
+  // los reintentos actualicen la pantalla sin recargar la página.
+  const [order, setOrder] = useState(
+    () => (state?.orderNumber && getOrder(state.orderNumber)) || getLastOrder()
+  )
   const [retrying, setRetrying] = useState(false)
   const [scenario, setScenario] = useState(() => resolveScenario(state?.scenario))
   const [retryError, setRetryError] = useState(null)
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState(null)
+  const retryingRef = useRef(false)
 
-  const handleCopyOrderNumber = () => {
+  async function handleCopyOrderNumber() {
     if (!order?.orderNumber) return
-    navigator.clipboard.writeText(order.orderNumber)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(order.orderNumber)
+      setCopyStatus('copied')
+    } catch {
+      // Sin permiso de portapapeles (o contexto no seguro): se avisa en vez
+      // de fallar en silencio.
+      setCopyStatus('failed')
+    }
+    setTimeout(() => setCopyStatus(null), 2000)
   }
 
-  const handlePrint = () => {
+  /**
+   * Nombre: handlePrint
+   * Descripción: Imprime el comprobante (PurchaseReceipt). Cambia el título
+   *              del documento mientras dura la impresión para que, al
+   *              guardar como PDF, el archivo se llame con el número de orden.
+   */
+  function handlePrint() {
+    const previousTitle = document.title
+    document.title = `Comprobante-${order.orderNumber}`
+    window.addEventListener('afterprint', () => { document.title = previousTitle }, { once: true })
     window.print()
   }
 
-  const handleRetry = useCallback(async () => {
-    if (!order) return
+  /**
+   * Nombre: handleRetry
+   * Descripción: Reintenta el cobro de la MISMA orden (mismo número y monto).
+   *              Relee la orden del almacenamiento antes de enviar para no
+   *              cobrar dos veces una orden que ya quedó confirmada (por
+   *              ejemplo, desde otra pestaña). El resultado se aplica con las
+   *              mismas reglas que el checkout (applyPaymentResult).
+   */
+  async function handleRetry() {
+    if (!order || retryingRef.current) return
+    retryingRef.current = true
     setRetrying(true)
     setRetryError(null)
 
     try {
-      const request = buildPaymentRequest(order, scenario)
-      const response = await requestPayment(request)
+      const latest = getOrder(order.orderNumber) ?? order
+      if (!isOrderPayable(latest)) {
+        setOrder(latest)
+        return
+      }
 
-      const orderStatus =
-        response.result === 'PAYMENT_APPROVED'
-          ? ORDER_STATUS.CONFIRMED
-          : response.result === 'PAYMENT_DECLINED'
-            ? ORDER_STATUS.FAILED
-            : ORDER_STATUS.PENDING
+      const response = await requestPayment(buildPaymentRequest(latest, scenario))
+      const updated = applyPaymentResult(latest.orderNumber, response)
+      if (!updated) {
+        setRetryError('No pudimos actualizar el estado de tu orden. Inténtalo de nuevo en unos segundos.')
+        return
+      }
 
-      const paymentStatus =
-        response.result === 'PAYMENT_APPROVED'
-          ? PAYMENT_STATUS.APPROVED
-          : response.result === 'PAYMENT_DECLINED'
-            ? PAYMENT_STATUS.DECLINED
-            : PAYMENT_STATUS.ERROR
-
-      updateOrder(order.orderNumber, {
-        orderStatus,
-        paymentStatus,
-        payment: {
-          transactionId: response.transactionId,
-          reasonCode: response.reasonCode,
-          message: response.message,
-          processedAt: response.processedAt,
-        },
-      })
-
-      navigate('/confirmacion', {
-        state: { orderNumber: order.orderNumber, scenario },
-        replace: true,
-      })
-      window.location.reload()
+      if (response.result === PAYMENT_RESULT.APPROVED) {
+        clearCart()
+        clearCheckoutDraft()
+      }
+      setOrder(updated)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
       setRetryError('No pudimos reintentar el pago. Inténtalo de nuevo en unos segundos.')
     } finally {
+      retryingRef.current = false
       setRetrying(false)
     }
-  }, [order, scenario, navigate])
+  }
 
   if (!order) {
     return (
@@ -420,8 +439,9 @@ function Confirmacion() {
   const outcome = getOutcome(order)
   const isApproved = order.paymentStatus === PAYMENT_STATUS.APPROVED
   const canRetry =
-    order.paymentStatus === PAYMENT_STATUS.DECLINED ||
-    order.paymentStatus === PAYMENT_STATUS.ERROR
+    isOrderPayable(order) &&
+    (order.paymentStatus === PAYMENT_STATUS.DECLINED || order.paymentStatus === PAYMENT_STATUS.ERROR)
+  const attemptCount = Array.isArray(order.paymentAttempts) ? order.paymentAttempts.length : 0
 
   const orderStatusBadge =
     order.orderStatus === ORDER_STATUS.CONFIRMED
@@ -435,7 +455,9 @@ function Confirmacion() {
       ? { label: 'Aprobado', tone: 'success' }
       : order.paymentStatus === PAYMENT_STATUS.DECLINED
         ? { label: 'Rechazado', tone: 'danger' }
-        : { label: 'Error', tone: 'warning' }
+        : order.paymentStatus === PAYMENT_STATUS.ERROR
+          ? { label: 'Error del servicio', tone: 'warning' }
+          : { label: 'Pendiente', tone: 'warning' }
 
   const formattedDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString('es-CR', {
@@ -521,11 +543,14 @@ function Confirmacion() {
                       className="confirmation-copy-btn"
                       onClick={handleCopyOrderNumber}
                       title="Copiar número de orden al portapapeles"
+                      aria-live="polite"
                     >
-                      {copied ? (
+                      {copyStatus === 'copied' ? (
                         <>
                           <IconCheck size={12} strokeWidth={3} /> ¡Copiado!
                         </>
+                      ) : copyStatus === 'failed' ? (
+                        'No se pudo copiar'
                       ) : (
                         <>
                           <IconCopy size={12} /> Copiar
@@ -558,6 +583,12 @@ function Confirmacion() {
                   <dt>Método de pago</dt>
                   <dd>Tarjeta de crédito / débito (Pasarela Sandbox)</dd>
                 </div>
+                {attemptCount > 1 && (
+                  <div className="confirmation-details__row">
+                    <dt>Intentos de pago</dt>
+                    <dd>{attemptCount}</dd>
+                  </div>
+                )}
                 {order.payment?.transactionId && (
                   <div className="confirmation-details__row">
                     <dt>ID de transacción</dt>
@@ -685,7 +716,7 @@ function Confirmacion() {
                 </strong>
               </div>
               <div className="checkout-summary__row checkout-summary__row--total">
-                <span>Total pagado</span>
+                <span>{isApproved ? 'Total pagado' : 'Total a pagar'}</span>
                 <strong>{formatCRC(order.total)}</strong>
               </div>
             </div>
@@ -717,6 +748,7 @@ function Confirmacion() {
                     className="checkout-summary__confirm"
                     onClick={handleRetry}
                     disabled={retrying}
+                    aria-busy={retrying}
                   >
                     {retrying ? (
                       <>
@@ -727,9 +759,17 @@ function Confirmacion() {
                       'Reintentar pago'
                     )}
                   </button>
-                  <Link className="checkout-summary__secondary-btn" to="/checkout">
-                    <IconArrowLeft size={16} /> Volver al Checkout
-                  </Link>
+                  {/* Si el carrito sigue con productos, el checkout conserva los
+                      datos ya ingresados (borrador en sessionStorage). */}
+                  {cartItems.length > 0 ? (
+                    <Link className="checkout-summary__secondary-btn" to="/checkout">
+                      <IconArrowLeft size={16} /> Revisar datos en el checkout
+                    </Link>
+                  ) : (
+                    <Link className="checkout-summary__secondary-btn" to="/productos">
+                      <IconArrowLeft size={16} /> Volver al catálogo
+                    </Link>
+                  )}
                 </>
               )}
             </div>
@@ -737,7 +777,13 @@ function Confirmacion() {
         </aside>
       </div>
 
-      <DevScenarioPanel currentScenario={scenario} onChange={setScenario} />
+      {/* Comprobante: oculto en pantalla, es lo único que se imprime. */}
+      {isApproved && <PurchaseReceipt order={order} />}
+
+      {/* El simulador solo tiene sentido mientras la orden admite reintentos. */}
+      {canRetry && (
+        <DevScenarioPanel currentScenario={scenario} onChange={setScenario} disabled={retrying} />
+      )}
     </main>
   )
 }
