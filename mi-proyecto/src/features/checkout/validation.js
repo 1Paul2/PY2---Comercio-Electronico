@@ -10,6 +10,8 @@
  * Excepciones: No hay.
  */
 
+import { CANTONS_BY_PROVINCE, PROVINCES } from './costaRicaLocations'
+
 /**
  * Nombre: isNonEmpty
  * Descripción: Verifica que un string tenga contenido después de recortar
@@ -19,20 +21,45 @@ function isNonEmpty(value) {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+const NAME_PATTERN = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'.-]+$/
+
 /**
- * Nombre: validateFullName
- * Descripción: Valida el nombre completo. Requiere al menos dos palabras
- *              separadas por espacio (nombre y apellido).
+ * Nombre: validateFirstName
+ * Descripción: Valida el nombre del comprador (puede ser compuesto, por
+ *              ejemplo "María José"). Solo letras, espacios y . ' -
  */
-export function validateFullName(value) {
-  if (!isNonEmpty(value)) return 'El nombre completo es obligatorio.'
-  const parts = value.trim().split(/\s+/)
-  if (parts.length < 2) return 'Ingresa al menos un nombre y un apellido.'
-  if (value.trim().length < 5) return 'El nombre es demasiado corto.'
-  if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'.-]+$/.test(value)) {
-    return 'El nombre solo puede contener letras y espacios.'
-  }
+export function validateFirstName(value) {
+  if (!isNonEmpty(value)) return 'El nombre es obligatorio.'
+  if (value.trim().length < 2) return 'El nombre es demasiado corto.'
+  if (!NAME_PATTERN.test(value)) return 'El nombre solo puede contener letras y espacios.'
   return null
+}
+
+/**
+ * Nombre: validateLastName
+ * Descripción: Valida los apellidos del comprador. Mismas reglas que el
+ *              nombre; acepta uno o dos apellidos.
+ */
+export function validateLastName(value) {
+  if (!isNonEmpty(value)) return 'El apellido es obligatorio.'
+  if (value.trim().length < 2) return 'El apellido es demasiado corto.'
+  if (!NAME_PATTERN.test(value)) return 'El apellido solo puede contener letras y espacios.'
+  return null
+}
+
+/**
+ * Nombre: buildFullName
+ * Descripción: Une nombre y apellidos en el nombre completo que se guarda en
+ *              la orden, normalizando los espacios.
+ * Entradas: buyer: { firstName, lastName }.
+ * Salidas: string con el nombre completo (vacío si no hay datos).
+ * Excepciones: No lanza.
+ */
+export function buildFullName(buyer) {
+  return [buyer?.firstName, buyer?.lastName]
+    .map((part) => (typeof part === 'string' ? part.trim().replace(/\s+/g, ' ') : ''))
+    .filter(Boolean)
+    .join(' ')
 }
 
 /**
@@ -57,9 +84,11 @@ export function validatePhone(value) {
   if (!isNonEmpty(value)) return 'El teléfono es obligatorio.'
   const digits = value.replace(/[\s\-()]/g, '')
   if (!/^\d+$/.test(digits)) return 'El teléfono solo puede contener números.'
-  if (digits.length === 8) return null
-  if (digits.length === 11 && digits.startsWith('506')) return null
-  return 'Ingresa un teléfono válido (8 dígitos, o 11 con el código 506).'
+  const local = digits.length === 11 && digits.startsWith('506') ? digits.slice(3) : digits
+  if (local.length !== 8) return 'Ingresa un teléfono válido (8 dígitos, o 11 con el código 506).'
+  // Los números de Costa Rica empiezan con 2 (fijos), 4, 5, 6, 7 u 8.
+  if (!/^[245678]/.test(local)) return 'El teléfono debe empezar con 2, 4, 5, 6, 7 u 8.'
+  return null
 }
 
 /**
@@ -68,15 +97,21 @@ export function validatePhone(value) {
  */
 export function validateProvince(value) {
   if (!isNonEmpty(value)) return 'Selecciona una provincia.'
+  if (!PROVINCES.includes(value)) return 'Selecciona una provincia de la lista.'
   return null
 }
 
 /**
  * Nombre: validateCanton
- * Descripción: Verifica que se haya seleccionado un cantón.
+ * Descripción: Verifica que se haya seleccionado un cantón y que pertenezca
+ *              a la provincia elegida (un borrador viejo podría traer una
+ *              combinación inválida).
  */
-export function validateCanton(value) {
+export function validateCanton(value, province) {
   if (!isNonEmpty(value)) return 'Selecciona un cantón.'
+  if (province && !(CANTONS_BY_PROVINCE[province] ?? []).includes(value)) {
+    return 'El cantón no pertenece a la provincia seleccionada.'
+  }
   return null
 }
 
@@ -87,7 +122,8 @@ export function validateCanton(value) {
  */
 export function validateAddress(value) {
   if (!isNonEmpty(value)) return 'La dirección es obligatoria.'
-  if (value.trim().length < 10) return 'La dirección es demasiado corta.'
+  if (value.trim().length < 10) return 'La dirección es demasiado corta (mínimo 10 caracteres).'
+  if (value.trim().length > 250) return 'La dirección no puede superar los 250 caracteres.'
   return null
 }
 
@@ -110,8 +146,10 @@ export function validateExtraInfo(value) {
  */
 export function validateBuyerForm(values) {
   const errors = {}
-  const nameError = validateFullName(values.fullName)
-  if (nameError) errors.fullName = nameError
+  const firstNameError = validateFirstName(values.firstName)
+  if (firstNameError) errors.firstName = firstNameError
+  const lastNameError = validateLastName(values.lastName)
+  if (lastNameError) errors.lastName = lastNameError
   const emailError = validateEmail(values.email)
   if (emailError) errors.email = emailError
   const phoneError = validatePhone(values.phone)
@@ -129,7 +167,7 @@ export function validateDeliveryForm(values) {
   const errors = {}
   const provinceError = validateProvince(values.province)
   if (provinceError) errors.province = provinceError
-  const cantonError = validateCanton(values.canton)
+  const cantonError = validateCanton(values.canton, values.province)
   if (cantonError) errors.canton = cantonError
   const addressError = validateAddress(values.address)
   if (addressError) errors.address = addressError

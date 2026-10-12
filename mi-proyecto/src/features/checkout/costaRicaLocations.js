@@ -35,9 +35,9 @@ export const CANTONS_BY_PROVINCE = {
   'Puntarenas': [
     'Puntarenas', 'Esparza', 'Buenos Aires', 'Montes de Oro', 'Osa',
     'Quepos', 'Golfito', 'Coto Brus', 'Parrita', 'Corredores',
-    'Garabito', 'Monteverde', 'Puuntarenas'
+    'Garabito', 'Monteverde', 'Puerto Jiménez'
   ],
   'Limón': [
-    'Limón', 'Pococí', 'Siquirres', 'Talamanca', 'Matina', 'Guácimo', "Guapiles"
+    'Limón', 'Pococí', 'Siquirres', 'Talamanca', 'Matina', 'Guácimo'
   ],
 }
