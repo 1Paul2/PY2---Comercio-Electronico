@@ -909,6 +909,12 @@
    Banner de resultado en confirmación
    ============================================================ */
 
+/* El banner recibe el foco al mostrar el resultado (para lectores de
+   pantalla); no necesita el contorno de foco porque no es interactivo. */
+.confirmation-banner:focus {
+  outline: none;
+}
+
 .confirmation-banner {
   display: flex;
   align-items: flex-start;

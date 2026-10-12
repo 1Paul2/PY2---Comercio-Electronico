@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { getOrder, getLastOrder } from '../features/orders/orderStorage'
@@ -355,6 +355,20 @@ function Confirmacion() {
   const [retryError, setRetryError] = useState(null)
   const [copyStatus, setCopyStatus] = useState(null)
   const retryingRef = useRef(false)
+  const bannerRef = useRef(null)
+
+  // Cada vez que se muestra un resultado (al llegar o tras un reintento), la
+  // pestaña del navegador lo indica en su título y el foco pasa al mensaje
+  // principal para que los lectores de pantalla lo anuncien.
+  useEffect(() => {
+    if (!order) return undefined
+    const previousTitle = document.title
+    document.title = `${getOutcome(order).title} | Maquinaria CR`
+    bannerRef.current?.focus({ preventScroll: true })
+    return () => {
+      document.title = previousTitle
+    }
+  }, [order])
 
   async function handleCopyOrderNumber() {
     if (!order?.orderNumber) return
@@ -484,7 +498,12 @@ function Confirmacion() {
       </header>
 
       {/* Banner de resultado principal */}
-      <section className={`confirmation-banner confirmation-banner--${outcome.tone}`} role="status">
+      <section
+        ref={bannerRef}
+        tabIndex={-1}
+        className={`confirmation-banner confirmation-banner--${outcome.tone}`}
+        role="status"
+      >
         <span className="confirmation-banner__icon" aria-hidden="true">{outcome.icon}</span>
         <div className="confirmation-banner__text">
           <h2 className="confirmation-banner__title">{outcome.title}</h2>
