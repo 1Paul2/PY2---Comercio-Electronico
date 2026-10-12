@@ -71,3 +71,11 @@
   color: var(--text-h);
   text-decoration: underline;
 }
+
+/* La pantalla de error inesperado usa este mismo estilo en un <button>. */
+button.not-found__button {
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
