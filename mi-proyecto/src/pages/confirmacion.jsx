@@ -12,6 +12,7 @@ import { applyPaymentResult, isOrderPayable } from '../features/orders/applyPaym
 import { clearCheckoutDraft } from '../features/checkout/useCheckoutPersistence'
 import { PAYMENT_RESULT, buildPaymentRequest } from '../features/payment/paymentContract'
 import { requestPayment } from '../features/payment/paymentClient'
+import { getPaymentReasonText } from '../features/payment/paymentMessages'
 import { resolveScenario } from '../features/payment/scenarioSelector'
 import { formatCRC } from '../features/catalog/format'
 import DevScenarioPanel from '../components/DevScenarioPanel'
@@ -461,6 +462,8 @@ function Confirmacion() {
     isOrderPayable(order) &&
     (order.paymentStatus === PAYMENT_STATUS.DECLINED || order.paymentStatus === PAYMENT_STATUS.ERROR)
   const attemptCount = Array.isArray(order.paymentAttempts) ? order.paymentAttempts.length : 0
+  // Motivo legible del último intento fallido (rechazo o error del servicio).
+  const reasonText = isApproved ? null : getPaymentReasonText(order.payment?.reasonCode)
 
   const orderStatusBadge = getOrderStatusDisplay(order.orderStatus)
 
@@ -508,6 +511,11 @@ function Confirmacion() {
         <div className="confirmation-banner__text">
           <h2 className="confirmation-banner__title">{outcome.title}</h2>
           <p className="confirmation-banner__message">{outcome.message}</p>
+          {reasonText && (
+            <p className="confirmation-banner__reason">
+              <strong>Motivo:</strong> {reasonText.reason} {reasonText.nextStep}
+            </p>
+          )}
         </div>
       </section>
 

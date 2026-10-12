@@ -950,6 +950,13 @@
   color: var(--text);
 }
 
+/* Motivo del pago fallido y qué puede hacer el usuario. */
+.confirmation-banner__reason {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
 .confirmation-banner--success {
   background-color: var(--success-bg);
   border-color: var(--success);
