@@ -46,6 +46,22 @@
   color: var(--text);
 }
 
+/* Acciones de la pantalla de carrito vacío: catálogo (principal) y carrito. */
+.checkout-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.checkout-empty__link {
+  color: var(--text-h);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .checkout-page__button {
   display: inline-block;
   padding: 0.75rem 1.5rem;

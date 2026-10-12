@@ -883,10 +883,18 @@ function Checkout() {
             <IconCartEmpty size={60} />
           </div>
           <h1>No hay productos para comprar</h1>
-          <p>Agrega al menos un producto al carrito antes de iniciar el checkout.</p>
-          <Link className="checkout-page__button" to="/productos">
-            Explorar catálogo
-          </Link>
+          <p>
+            Tu carrito está vacío, por eso no puedes continuar con la compra. Agrega al
+            menos un producto al carrito antes de iniciar el checkout.
+          </p>
+          <div className="checkout-empty__actions">
+            <Link className="checkout-page__button" to="/productos">
+              Explorar catálogo
+            </Link>
+            <Link className="checkout-empty__link" to="/carrito">
+              Ver mi carrito
+            </Link>
+          </div>
         </div>
       </main>
     )
