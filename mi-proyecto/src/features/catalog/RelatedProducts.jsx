@@ -76,6 +76,10 @@ function useRelatedProducts({ categoryFacet, brandFacet, excludeId }) {
 /**
  * Nombre: RelatedProducts
  * Descripción: Renderiza una fila desplazable con productos relacionados al producto actual.
+ *              Se navega con dos flechas sobre los costados de la fila (semitransparentes,
+ *              se resaltan al pasar el mouse) o deslizando con el dedo en pantallas táctiles.
+ *              La navegación es de ida y vuelta: al llegar al final, "›" regresa al inicio, y desde
+ *              el inicio, "‹" salta al final. Si todos los productos caben, las flechas se ocultan.
  * Entradas: categoryFacet, brandFacet, excludeId: datos para encontrar productos similares.
  * Salidas: JSX con la sección de productos relacionados.
  * Excepciones: No hay.
@@ -85,6 +89,8 @@ function RelatedProducts({ categoryFacet, brandFacet, excludeId }) {
   const trackRef = useRef(null)
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
+  // Solo hay flechas si los productos no caben todos a la vez.
+  const hasOverflow = canScrollPrev || canScrollNext
 
   useEffect(() => {
     const track = trackRef.current
@@ -105,10 +111,23 @@ function RelatedProducts({ categoryFacet, brandFacet, excludeId }) {
     }
   }, [hits])
 
+  /**
+   * Nombre: scrollByDirection
+   * Descripción: Avanza o retrocede la fila. En los extremos da la vuelta:
+   *              al final regresa al inicio y al inicio salta al final.
+   * Entradas: direction: 1 (siguiente) o -1 (anterior).
+   */
   function scrollByDirection(direction) {
     const track = trackRef.current
     if (!track) return
-    track.scrollBy({ left: track.clientWidth * 0.8 * direction, behavior: 'smooth' })
+
+    if (direction > 0 && !canScrollNext) {
+      track.scrollTo({ left: 0, behavior: 'smooth' })
+    } else if (direction < 0 && !canScrollPrev) {
+      track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' })
+    } else {
+      track.scrollBy({ left: track.clientWidth * 0.8 * direction, behavior: 'smooth' })
+    }
   }
 
   if (status === 'loading' || status === 'empty' || status === 'error') {
@@ -119,32 +138,36 @@ function RelatedProducts({ categoryFacet, brandFacet, excludeId }) {
     <section className="related-products" aria-label="Productos relacionados">
       <div className="related-products__header">
         <h2>Productos relacionados</h2>
-        <div className="related-products__nav">
-          <button
-            type="button"
-            onClick={() => scrollByDirection(-1)}
-            disabled={!canScrollPrev}
-            aria-label="Ver productos anteriores"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollByDirection(1)}
-            disabled={!canScrollNext}
-            aria-label="Ver más productos"
-          >
-            ›
-          </button>
-        </div>
       </div>
 
-      <div className="related-products__track" ref={trackRef}>
-        {hits.map((hit) => (
-          <div className="related-products__item" key={hit.objectID}>
-            <ProductCard hit={hit} />
-          </div>
-        ))}
+      <div className="related-products__viewport">
+        <button
+          type="button"
+          className="related-products__arrow related-products__arrow--prev"
+          onClick={() => scrollByDirection(-1)}
+          hidden={!hasOverflow}
+          aria-label={canScrollPrev ? 'Ver productos anteriores' : 'Ir al final de los productos'}
+        >
+          ‹
+        </button>
+
+        <div className="related-products__track" ref={trackRef}>
+          {hits.map((hit) => (
+            <div className="related-products__item" key={hit.objectID}>
+              <ProductCard hit={hit} />
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="related-products__arrow related-products__arrow--next"
+          onClick={() => scrollByDirection(1)}
+          hidden={!hasOverflow}
+          aria-label={canScrollNext ? 'Ver más productos' : 'Volver al inicio de los productos'}
+        >
+          ›
+        </button>
       </div>
     </section>
   )
