@@ -13,6 +13,18 @@ const REASON_TEXT = Object.freeze({
     reason: 'El banco o emisor de la tarjeta no autorizó el cobro.',
     nextStep: 'Verifica que la tarjeta tenga fondos y esté habilitada, y vuelve a intentarlo.',
   },
+  [REASON_CODE.SERVICE_UNAVAILABLE]: {
+    reason: 'El servicio de pagos no respondió a tiempo. No se realizó ningún cobro.',
+    nextStep: 'Espera unos segundos y vuelve a intentarlo.',
+  },
+  [REASON_CODE.INVALID_RESPONSE]: {
+    reason: 'El servicio de pagos envió una respuesta que no pudimos interpretar. No se realizó ningún cobro.',
+    nextStep: 'Vuelve a intentarlo; si el problema continúa, intenta más tarde.',
+  },
+  [REASON_CODE.INVALID_REQUEST]: {
+    reason: 'No pudimos enviar la solicitud de pago porque faltan datos de la orden.',
+    nextStep: 'Vuelve al checkout, revisa tus datos y confirma la compra de nuevo.',
+  },
 })
 
 /**
