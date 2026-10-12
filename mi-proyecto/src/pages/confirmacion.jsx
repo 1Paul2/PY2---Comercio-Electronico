@@ -452,15 +452,18 @@ function Confirmacion() {
 
   const paymentStatusBadge = getPaymentStatusDisplay(order.paymentStatus)
 
-  const formattedDate = order.createdAt
-    ? new Date(order.createdAt).toLocaleDateString('es-CR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : ''
+  const formatDate = (isoDate) =>
+    isoDate
+      ? new Date(isoDate).toLocaleDateString('es-CR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : ''
+  const formattedDate = formatDate(order.createdAt)
+  const formattedUpdate = formatDate(order.updatedAt)
 
   return (
     <main className="checkout-page confirmation-page">
@@ -582,6 +585,12 @@ function Confirmacion() {
                   <dt>Método de pago</dt>
                   <dd>Tarjeta de crédito / débito (Pasarela Sandbox)</dd>
                 </div>
+                {formattedUpdate && (
+                  <div className="confirmation-details__row">
+                    <dt>Última actualización</dt>
+                    <dd>{formattedUpdate}</dd>
+                  </div>
+                )}
                 {attemptCount > 1 && (
                   <div className="confirmation-details__row">
                     <dt>Intentos de pago</dt>
