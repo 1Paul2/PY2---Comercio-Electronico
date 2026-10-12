@@ -12,6 +12,7 @@ import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersiste
 import { resolveScenario, setScenario as persistScenario } from '../features/payment/scenarioSelector'
 import { buildPaymentRequest } from '../features/payment/paymentContract'
 import { requestPayment } from '../features/payment/paymentClient'
+import { useWarnBeforeLeave } from '../features/payment/useWarnBeforeLeave'
 import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
 import { buildOrder } from '../features/orders/buildOrder'
 import { saveOrder } from '../features/orders/orderStorage'
@@ -720,6 +721,9 @@ function Checkout() {
   const [processing, setProcessing] = useState(false)
   const [processingStage, setProcessingStage] = useState(null)
   const [submitError, setSubmitError] = useState(null)
+
+  // Si el usuario intenta recargar o cerrar mientras se paga, se le advierte.
+  useWarnBeforeLeave(processing)
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])

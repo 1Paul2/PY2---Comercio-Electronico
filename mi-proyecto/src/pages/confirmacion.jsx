@@ -12,6 +12,7 @@ import { applyPaymentResult, isOrderPayable } from '../features/orders/applyPaym
 import { clearCheckoutDraft } from '../features/checkout/useCheckoutPersistence'
 import { PAYMENT_RESULT, buildPaymentRequest } from '../features/payment/paymentContract'
 import { requestPayment } from '../features/payment/paymentClient'
+import { useWarnBeforeLeave } from '../features/payment/useWarnBeforeLeave'
 import { getPaymentReasonText } from '../features/payment/paymentMessages'
 import { resolveScenario } from '../features/payment/scenarioSelector'
 import { formatCRC } from '../features/catalog/format'
@@ -357,6 +358,9 @@ function Confirmacion() {
   const [copyStatus, setCopyStatus] = useState(null)
   const retryingRef = useRef(false)
   const bannerRef = useRef(null)
+
+  // Mientras se reintenta el pago, se advierte antes de recargar o cerrar.
+  useWarnBeforeLeave(retrying)
 
   // Cada vez que se muestra un resultado (al llegar o tras un reintento), la
   // pestaña del navegador lo indica en su título y el foco pasa al mensaje
