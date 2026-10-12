@@ -54,4 +54,43 @@ export const PAYMENT_STATUS = Object.freeze({
   ERROR: 'ERROR',
 })
 
+/**
+ * Cómo se muestra cada estado del pago al usuario. Es independiente del
+ * estado de la orden: describe lo que respondió el servicio de pagos.
+ */
+export const PAYMENT_STATUS_DISPLAY = Object.freeze({
+  [PAYMENT_STATUS.PENDING]: {
+    label: 'Pendiente',
+    tone: 'warning',
+    description: 'El pago todavía no se ha procesado.',
+  },
+  [PAYMENT_STATUS.APPROVED]: {
+    label: 'Aprobado',
+    tone: 'success',
+    description: 'El servicio de pagos aprobó el cobro.',
+  },
+  [PAYMENT_STATUS.DECLINED]: {
+    label: 'Rechazado',
+    tone: 'danger',
+    description: 'El emisor de la tarjeta no autorizó el cobro.',
+  },
+  [PAYMENT_STATUS.ERROR]: {
+    label: 'Error del servicio',
+    tone: 'warning',
+    description: 'El servicio de pagos no respondió correctamente; no se realizó el cobro.',
+  },
+})
+
+/**
+ * Nombre: getPaymentStatusDisplay
+ * Descripción: Devuelve cómo mostrar un estado del pago. Un estado
+ *              desconocido se muestra como pendiente.
+ * Entradas: status: valor de PAYMENT_STATUS.
+ * Salidas: { label, tone, description }.
+ * Excepciones: No lanza.
+ */
+export function getPaymentStatusDisplay(status) {
+  return PAYMENT_STATUS_DISPLAY[status] ?? PAYMENT_STATUS_DISPLAY[PAYMENT_STATUS.PENDING]
+}
+
 export const ORDER_CURRENCY = 'CRC'

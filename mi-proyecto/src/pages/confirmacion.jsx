@@ -2,7 +2,12 @@ import { useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { getOrder, getLastOrder } from '../features/orders/orderStorage'
-import { ORDER_STATUS, PAYMENT_STATUS, getOrderStatusDisplay } from '../features/orders/orderStatus'
+import {
+  ORDER_STATUS,
+  PAYMENT_STATUS,
+  getOrderStatusDisplay,
+  getPaymentStatusDisplay,
+} from '../features/orders/orderStatus'
 import { applyPaymentResult, isOrderPayable } from '../features/orders/applyPaymentResult'
 import { clearCheckoutDraft } from '../features/checkout/useCheckoutPersistence'
 import { PAYMENT_RESULT, buildPaymentRequest } from '../features/payment/paymentContract'
@@ -445,14 +450,7 @@ function Confirmacion() {
 
   const orderStatusBadge = getOrderStatusDisplay(order.orderStatus)
 
-  const paymentStatusBadge =
-    order.paymentStatus === PAYMENT_STATUS.APPROVED
-      ? { label: 'Aprobado', tone: 'success' }
-      : order.paymentStatus === PAYMENT_STATUS.DECLINED
-        ? { label: 'Rechazado', tone: 'danger' }
-        : order.paymentStatus === PAYMENT_STATUS.ERROR
-          ? { label: 'Error del servicio', tone: 'warning' }
-          : { label: 'Pendiente', tone: 'warning' }
+  const paymentStatusBadge = getPaymentStatusDisplay(order.paymentStatus)
 
   const formattedDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString('es-CR', {
@@ -572,7 +570,10 @@ function Confirmacion() {
                 <div className="confirmation-details__row">
                   <dt>Estado del pago</dt>
                   <dd>
-                    <span className={`confirmation-badge confirmation-badge--${paymentStatusBadge.tone}`}>
+                    <span
+                      className={`confirmation-badge confirmation-badge--${paymentStatusBadge.tone}`}
+                      title={paymentStatusBadge.description}
+                    >
                       {paymentStatusBadge.label}
                     </span>
                   </dd>
