@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { getOrder, getLastOrder } from '../features/orders/orderStorage'
-import { ORDER_STATUS, PAYMENT_STATUS } from '../features/orders/orderStatus'
+import { ORDER_STATUS, PAYMENT_STATUS, getOrderStatusDisplay } from '../features/orders/orderStatus'
 import { applyPaymentResult, isOrderPayable } from '../features/orders/applyPaymentResult'
 import { clearCheckoutDraft } from '../features/checkout/useCheckoutPersistence'
 import { PAYMENT_RESULT, buildPaymentRequest } from '../features/payment/paymentContract'
@@ -443,12 +443,7 @@ function Confirmacion() {
     (order.paymentStatus === PAYMENT_STATUS.DECLINED || order.paymentStatus === PAYMENT_STATUS.ERROR)
   const attemptCount = Array.isArray(order.paymentAttempts) ? order.paymentAttempts.length : 0
 
-  const orderStatusBadge =
-    order.orderStatus === ORDER_STATUS.CONFIRMED
-      ? { label: 'Confirmada', tone: 'success' }
-      : order.orderStatus === ORDER_STATUS.FAILED
-        ? { label: 'Cancelada', tone: 'danger' }
-        : { label: 'Pendiente', tone: 'warning' }
+  const orderStatusBadge = getOrderStatusDisplay(order.orderStatus)
 
   const paymentStatusBadge =
     order.paymentStatus === PAYMENT_STATUS.APPROVED
@@ -566,7 +561,10 @@ function Confirmacion() {
                 <div className="confirmation-details__row">
                   <dt>Estado de la orden</dt>
                   <dd>
-                    <span className={`confirmation-badge confirmation-badge--${orderStatusBadge.tone}`}>
+                    <span
+                      className={`confirmation-badge confirmation-badge--${orderStatusBadge.tone}`}
+                      title={orderStatusBadge.description}
+                    >
                       {orderStatusBadge.label}
                     </span>
                   </dd>
