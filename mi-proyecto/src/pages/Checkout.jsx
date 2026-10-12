@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { formatCRC } from '../features/catalog/format'
 import { PROVINCES, CANTONS_BY_PROVINCE } from '../features/checkout/costaRicaLocations'
 import {
+  buildFullName,
   validateBuyerForm,
   validateDeliveryForm,
 } from '../features/checkout/validation'
@@ -13,8 +14,9 @@ import { buildPaymentRequest } from '../features/payment/paymentContract'
 import { requestPayment } from '../features/payment/paymentClient'
 import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
 import { buildOrder } from '../features/orders/buildOrder'
-import { saveOrder, updateOrder } from '../features/orders/orderStorage'
-import { ORDER_STATUS, PAYMENT_STATUS } from '../features/orders/orderStatus'
+import { saveOrder } from '../features/orders/orderStorage'
+import { applyPaymentResult } from '../features/orders/applyPaymentResult'
+import { PAYMENT_RESULT } from '../features/payment/paymentContract'
 import DevScenarioPanel from '../components/DevScenarioPanel'
 import '../styles/Checkout.css'
 
@@ -274,18 +276,36 @@ function Field({ id, label, error, required = false, children }) {
 function BuyerForm({ values, errors, touched, onChange, onBlur }) {
   return (
     <div className="checkout-form">
-      <Field id="fullName" label="Nombre completo" error={touched.fullName && errors.fullName} required>
+      <Field id="firstName" label="Nombre" error={touched.firstName && errors.firstName} required>
         <input
-          id="fullName"
-          name="fullName"
+          id="firstName"
+          name="firstName"
           type="text"
-          autoComplete="name"
-          value={values.fullName}
-          onChange={(e) => onChange('fullName', e.target.value)}
-          onBlur={() => onBlur('fullName')}
-          aria-invalid={Boolean(touched.fullName && errors.fullName)}
-          aria-describedby={touched.fullName && errors.fullName ? 'fullName-error' : undefined}
-          placeholder="Ej: María Rodríguez Solís"
+          autoComplete="given-name"
+          maxLength={60}
+          value={values.firstName}
+          onChange={(e) => onChange('firstName', e.target.value)}
+          onBlur={() => onBlur('firstName')}
+          aria-invalid={Boolean(touched.firstName && errors.firstName)}
+          aria-describedby={touched.firstName && errors.firstName ? 'firstName-error' : undefined}
+          placeholder="Ej: María"
+          className="checkout-field__input"
+        />
+      </Field>
+
+      <Field id="lastName" label="Apellidos" error={touched.lastName && errors.lastName} required>
+        <input
+          id="lastName"
+          name="lastName"
+          type="text"
+          autoComplete="family-name"
+          maxLength={60}
+          value={values.lastName}
+          onChange={(e) => onChange('lastName', e.target.value)}
+          onBlur={() => onBlur('lastName')}
+          aria-invalid={Boolean(touched.lastName && errors.lastName)}
+          aria-describedby={touched.lastName && errors.lastName ? 'lastName-error' : undefined}
+          placeholder="Ej: Rodríguez Solís"
           className="checkout-field__input"
         />
       </Field>
@@ -381,6 +401,7 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
         <textarea
           id="address"
           name="address"
+          maxLength={250}
           rows={3}
           value={values.address}
           onChange={(e) => onChange('address', e.target.value)}
@@ -400,6 +421,7 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
         <textarea
           id="extraInfo"
           name="extraInfo"
+          maxLength={300}
           rows={2}
           value={values.extraInfo}
           onChange={(e) => onChange('extraInfo', e.target.value)}
@@ -502,7 +524,7 @@ function ReviewBlock({ buyer, delivery, buyerIsValid, deliveryIsValid }) {
         <dl className="checkout-review__list">
           <div className="checkout-review__row">
             <dt>Nombre</dt>
-            <dd>{buyer.fullName || '—'}</dd>
+            <dd>{buildFullName(buyer) || '—'}</dd>
           </div>
           <div className="checkout-review__row">
             <dt>Correo</dt>
@@ -618,8 +640,8 @@ function CheckoutSummaryPanel({
 
         {submitAttempted && !canConfirm && missingCount > 0 && (
           <p className="checkout-summary__notice" role="alert">
-            <IconAlertTriangle size={14} /> Faltan {missingCount}{' '}
-            {missingCount === 1 ? 'campo obligatorio' : 'campos obligatorios'}
+            <IconAlertTriangle size={14} /> {missingCount === 1 ? 'Hay 1 campo' : `Hay ${missingCount} campos`}{' '}
+            por completar o corregir
           </p>
         )}
 
@@ -628,7 +650,7 @@ function CheckoutSummaryPanel({
           className="checkout-summary__confirm"
           onClick={onConfirm}
           disabled={processing}
-          aria-disabled={processing}
+          aria-busy={processing}
         >
           {processing ? (
             <>
@@ -661,11 +683,14 @@ function CheckoutSummaryPanel({
    Página principal
    ============================================================ */
 
-const INITIAL_BUYER = { fullName: '', email: '', phone: '' }
+const INITIAL_BUYER = { firstName: '', lastName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
+// Orden visual de los campos; se usa para enfocar el primer error.
+const FIELD_ORDER = ['firstName', 'lastName', 'email', 'phone', 'province', 'canton', 'address', 'extraInfo']
 
 function Checkout() {
-  const { items, subtotal, iva, shippingCost, total } = useCart()
+  const { items, subtotal, iva, shippingCost, total, clearCart } = useCart()
+  const submittingRef = useRef(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -737,16 +762,58 @@ function Checkout() {
     setDeliveryTouched((prev) => ({ ...prev, [field]: true }))
   }
 
+  /**
+   * Nombre: focusFirstInvalidField
+   * Descripción: Lleva al usuario al primer campo con error (en el orden en
+   *              que aparecen en pantalla) para que sepa qué corregir.
+   */
+  function focusFirstInvalidField() {
+    const firstInvalid = FIELD_ORDER.find((field) => buyerErrors[field] || deliveryErrors[field])
+    const element = firstInvalid ? document.getElementById(firstInvalid) : null
+    if (element) {
+      element.focus({ preventScroll: true })
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+
+  /**
+   * Nombre: finishWithError
+   * Descripción: Libera el bloqueo de envío y muestra un mensaje comprensible.
+   */
+  function finishWithError(message) {
+    submittingRef.current = false
+    setProcessing(false)
+    setProcessingStage(null)
+    setSubmitError(message)
+  }
+
+  /**
+   * Nombre: handleConfirm
+   * Descripción: Flujo completo al confirmar la compra:
+   *                1. Valida los formularios (si hay errores, no avanza).
+   *                2. Construye y guarda la orden en estado PENDING.
+   *                3. Envía la solicitud de pago al Sandbox.
+   *                4. Aplica el resultado a la orden (applyPaymentResult).
+   *                5. Si el pago fue aprobado, vacía el carrito.
+   *                6. Navega a la confirmación, que muestra el resultado.
+   *              submittingRef evita que un doble clic rápido (antes de que
+   *              React vuelva a renderizar el botón deshabilitado) cree dos
+   *              órdenes o dos cobros.
+   */
   async function handleConfirm() {
+    if (submittingRef.current) return
+
     setSubmitAttempted(true)
     setSubmitError(null)
 
-    if (!canConfirm) {
-      setBuyerTouched({ fullName: true, email: true, phone: true })
+    if (!buyerIsValid || !deliveryIsValid) {
+      setBuyerTouched({ firstName: true, lastName: true, email: true, phone: true })
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
+      focusFirstInvalidField()
       return
     }
 
+    submittingRef.current = true
     setProcessing(true)
     setProcessingStage('building')
 
@@ -755,7 +822,9 @@ function Checkout() {
       const orderNumber = generateUniqueOrderNumber()
       order = buildOrder({
         orderNumber,
-        buyer,
+        // La orden guarda el nombre completo (nombre + apellidos) como pide
+        // el enunciado; el formulario los pide por separado.
+        buyer: { fullName: buildFullName(buyer), email: buyer.email, phone: buyer.phone },
         delivery,
         items: items.map((item) => ({
           id: item.id,
@@ -767,54 +836,34 @@ function Checkout() {
         totals: { subtotal, iva, shippingCost, total },
       })
     } catch {
-      setProcessing(false)
-      setProcessingStage(null)
-      setSubmitError(
-        'Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.'
-      )
+      finishWithError('Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.')
       return
     }
 
-    const saved = saveOrder(order)
-    if (!saved) {
-      setProcessing(false)
-      setProcessingStage(null)
-      setSubmitError(
-        'No pudimos registrar tu orden. Inténtalo de nuevo en unos segundos.'
-      )
+    if (!saveOrder(order)) {
+      finishWithError('No pudimos registrar tu orden. Inténtalo de nuevo en unos segundos.')
       return
     }
 
     setProcessingStage('paying')
-    const paymentRequest = buildPaymentRequest(order, scenario)
-    const paymentResponse = await requestPayment(paymentRequest)
-    let orderStatus
-    if (paymentResponse.result === 'PAYMENT_APPROVED') {
-      orderStatus = ORDER_STATUS.CONFIRMED
-    } else if (paymentResponse.result === 'PAYMENT_DECLINED') {
-      orderStatus = ORDER_STATUS.FAILED
-    } else {
-      orderStatus = ORDER_STATUS.PENDING
+    // requestPayment nunca rechaza: cualquier falla llega como PAYMENT_ERROR.
+    const paymentResponse = await requestPayment(buildPaymentRequest(order, scenario))
+
+    if (!applyPaymentResult(order.orderNumber, paymentResponse)) {
+      finishWithError(
+        'No pudimos actualizar el estado de tu orden. Revisa tu conexión e inténtalo de nuevo.'
+      )
+      return
     }
 
-    const paymentStatus =
-      paymentResponse.result === 'PAYMENT_APPROVED'
-        ? PAYMENT_STATUS.APPROVED
-        : paymentResponse.result === 'PAYMENT_DECLINED'
-          ? PAYMENT_STATUS.DECLINED
-          : PAYMENT_STATUS.ERROR
+    // Solo una compra aprobada vacía el carrito y descarta el borrador. Si el
+    // pago fue rechazado o falló, el usuario conserva todo para reintentar.
+    if (paymentResponse.result === PAYMENT_RESULT.APPROVED) {
+      clearDraft()
+      clearCart()
+    }
 
-    updateOrder(order.orderNumber, {
-      orderStatus,
-      paymentStatus,
-      payment: {
-        transactionId: paymentResponse.transactionId,
-        reasonCode: paymentResponse.reasonCode,
-        message: paymentResponse.message,
-        processedAt: paymentResponse.processedAt,
-      },
-    })
-    clearDraft()
+    submittingRef.current = false
     setProcessing(false)
     setProcessingStage(null)
     navigate('/confirmacion', {
@@ -866,7 +915,10 @@ function Checkout() {
       )}
 
       <div className="checkout-page__layout">
-        <div className="checkout-page__main">
+        {/* Mientras se procesa el pago los datos quedan bloqueados para que la
+            orden enviada coincida con lo que el usuario ve en pantalla. */}
+        <fieldset className="checkout-page__main checkout-page__fieldset" disabled={processing}>
+          <legend className="visually-hidden">Datos de la compra</legend>
           <CheckoutSection
             number={1}
             title="Información del comprador"
@@ -907,7 +959,7 @@ function Checkout() {
               deliveryIsValid={deliveryIsValid}
             />
           </CheckoutSection>
-        </div>
+        </fieldset>
 
         <CheckoutSummaryPanel
           canConfirm={canConfirm}
@@ -919,7 +971,7 @@ function Checkout() {
         />
       </div>
 
-      <DevScenarioPanel currentScenario={scenario} onChange={handleScenarioChange} />
+      <DevScenarioPanel currentScenario={scenario} onChange={handleScenarioChange} disabled={processing} />
     </main>
   )
 }
