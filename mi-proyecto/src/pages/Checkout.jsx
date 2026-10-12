@@ -12,6 +12,7 @@ import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersiste
 import { resolveScenario, setScenario as persistScenario } from '../features/payment/scenarioSelector'
 import { buildPaymentRequest } from '../features/payment/paymentContract'
 import { requestPayment } from '../features/payment/paymentClient'
+import { useWarnBeforeLeave } from '../features/payment/useWarnBeforeLeave'
 import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
 import { buildOrder } from '../features/orders/buildOrder'
 import { saveOrder } from '../features/orders/orderStorage'
@@ -721,6 +722,9 @@ function Checkout() {
   const [processingStage, setProcessingStage] = useState(null)
   const [submitError, setSubmitError] = useState(null)
 
+  // Si el usuario intenta recargar o cerrar mientras se paga, se le advierte.
+  useWarnBeforeLeave(processing)
+
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
 
@@ -879,10 +883,18 @@ function Checkout() {
             <IconCartEmpty size={60} />
           </div>
           <h1>No hay productos para comprar</h1>
-          <p>Agrega al menos un producto al carrito antes de iniciar el checkout.</p>
-          <Link className="checkout-page__button" to="/productos">
-            Explorar catálogo
-          </Link>
+          <p>
+            Tu carrito está vacío, por eso no puedes continuar con la compra. Agrega al
+            menos un producto al carrito antes de iniciar el checkout.
+          </p>
+          <div className="checkout-empty__actions">
+            <Link className="checkout-page__button" to="/productos">
+              Explorar catálogo
+            </Link>
+            <Link className="checkout-empty__link" to="/carrito">
+              Ver mi carrito
+            </Link>
+          </div>
         </div>
       </main>
     )

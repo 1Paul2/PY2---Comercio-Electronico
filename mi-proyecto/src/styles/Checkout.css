@@ -46,6 +46,22 @@
   color: var(--text);
 }
 
+/* Acciones de la pantalla de carrito vacío: catálogo (principal) y carrito. */
+.checkout-empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.checkout-empty__link {
+  color: var(--text-h);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .checkout-page__button {
   display: inline-block;
   padding: 0.75rem 1.5rem;
@@ -909,6 +925,12 @@
    Banner de resultado en confirmación
    ============================================================ */
 
+/* El banner recibe el foco al mostrar el resultado (para lectores de
+   pantalla); no necesita el contorno de foco porque no es interactivo. */
+.confirmation-banner:focus {
+  outline: none;
+}
+
 .confirmation-banner {
   display: flex;
   align-items: flex-start;
@@ -942,6 +964,13 @@
   margin: 0;
   font-size: 0.95rem;
   color: var(--text);
+}
+
+/* Motivo del pago fallido y qué puede hacer el usuario. */
+.confirmation-banner__reason {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-h);
 }
 
 .confirmation-banner--success {

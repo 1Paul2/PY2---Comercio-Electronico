@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { searchClient } from './searchClient'
 import { formatCRC } from './format'
+import { getAddButtonLabel, getCartAvailability, toCartItem } from './cartProduct'
+import { useCart } from '../../context/useCart'
 import '../../styles/CategoryShowcase.css'
 
 const INDEX_NAME = 'grupo-07_products'
@@ -9,6 +11,7 @@ const BLOCK_CATEGORY_LIMIT = 12
 const BLOCK_ITEMS = 4           
 const COLUMNS_PER_ROW = 4
 const ROTATE_INTERVAL_MS = 5000
+const ADDED_FEEDBACK_MS = 1500
 
 /**
  * Nombre: chunk
@@ -91,32 +94,69 @@ function useCategoryShowcase() {
 
 /**
  * Nombre: BlockColumn
- * Descripción: Muestra una columna con una categoría y su producto destacado rotando automáticamente.
+ * Descripción: Muestra una columna con una categoría y su producto destacado rotando automáticamente,
+ *              con un botón para agregar al carrito el producto que se está viendo.
+ *              Para que el botón nunca agregue un producto distinto al que el usuario ve, la rotación
+ *              se pausa mientras el puntero o el foco del teclado están sobre la columna y mientras se
+ *              muestra la confirmación "Agregado".
  * Entradas: category: objeto con nombre, conteo y productos de la categoría.
  * Salidas: JSX con la columna visual de la categoría.
  * Excepciones: No hay.
  */
 function BlockColumn({ category }) {
   const hits = category.hits
+  const { addItem, items } = useCart()
   const [activeIndex, setActiveIndex] = useState(0)
+  const [isPointerInside, setIsPointerInside] = useState(false)
+  const [isFocusInside, setIsFocusInside] = useState(false)
+  // Guarda el id del producto agregado: la confirmación solo se muestra
+  // para ese producto, aunque luego la columna rote a otro.
+  const [addedId, setAddedId] = useState(null)
+
+  const isPaused = isPointerInside || isFocusInside || addedId !== null
 
   useEffect(() => {
-    if (hits.length <= 1) return undefined
+    if (hits.length <= 1 || isPaused) return undefined
 
     const interval = setInterval(() => {
       setActiveIndex((i) => (i + 1) % hits.length)
     }, ROTATE_INTERVAL_MS)
 
     return () => clearInterval(interval)
-  }, [hits.length])
+  }, [hits.length, isPaused])
+
+  useEffect(() => {
+    if (addedId === null) return undefined
+    const timeoutId = window.setTimeout(() => setAddedId(null), ADDED_FEEDBACK_MS)
+    return () => window.clearTimeout(timeoutId)
+  }, [addedId])
 
   const activeHit = hits[activeIndex]
   if (!activeHit) return null
 
   const price = activeHit.pricing?.b2c?.price_crc
+  const quantityInCart = items.find((item) => item.id === activeHit.objectID)?.quantity ?? 0
+  const availability = getCartAvailability(activeHit, quantityInCart)
+  const justAdded = addedId === activeHit.objectID
+
+  function handleAddToCart() {
+    addItem(toCartItem(activeHit, availability.totalStock))
+    setAddedId(activeHit.objectID)
+  }
+
+  // Al salir el foco hacia fuera de la columna (no entre sus propios hijos).
+  function handleBlur(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) setIsFocusInside(false)
+  }
 
   return (
-    <div className="showcase-column">
+    <div
+      className="showcase-column"
+      onPointerEnter={() => setIsPointerInside(true)}
+      onPointerLeave={() => setIsPointerInside(false)}
+      onFocus={() => setIsFocusInside(true)}
+      onBlur={handleBlur}
+    >
       <div className="showcase-column__header">
         <h3>{category.name}</h3>
         <Link
@@ -137,7 +177,7 @@ function BlockColumn({ category }) {
               loading="lazy"
               className={`showcase-rotator__image${index === activeIndex ? ' is-active' : ''}`}
               onError={(e) => {
-                e.currentTarget.src = '/icons.svg'
+                e.currentTarget.src = `${import.meta.env.BASE_URL}icons.svg`
               }}
             />
           ))}
@@ -157,6 +197,22 @@ function BlockColumn({ category }) {
         <p className="showcase-rotator__name">{activeHit.title}</p>
         <p className="showcase-rotator__price">{formatCRC(price)}</p>
       </Link>
+
+      <button
+        type="button"
+        className={`showcase-column__add${justAdded ? ' showcase-column__add--success' : ''}`}
+        onClick={handleAddToCart}
+        disabled={!availability.canAddToCart}
+        aria-label={
+          !availability.isAvailable
+            ? `${activeHit.title} agotado`
+            : availability.isAtStockLimit
+              ? `${activeHit.title}: ya tienes todo el stock disponible en el carrito`
+              : `Agregar ${activeHit.title} al carrito`
+        }
+      >
+        {getAddButtonLabel(availability, justAdded)}
+      </button>
     </div>
   )
 }

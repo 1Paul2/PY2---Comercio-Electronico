@@ -78,7 +78,7 @@ export function saveOrder(order) {
  * Nombre: updateOrder
  * Descripción: Actualiza campos de una orden ya guardada (por ejemplo, los
  *              estados tras el resultado del pago). No permite cambiar el
- *              número de orden.
+ *              número de orden y registra la fecha del cambio en updatedAt.
  * Entradas: orderNumber: número de la orden; changes: campos a sobrescribir.
  * Salidas: la orden actualizada, o null si no existe o no se pudo guardar.
  * Excepciones: No lanza.
@@ -87,7 +87,12 @@ export function updateOrder(orderNumber, changes) {
   const store = readStore()
   const current = store.orders[orderNumber]
   if (!current) return null
-  const updated = { ...current, ...changes, orderNumber: current.orderNumber }
+  const updated = {
+    ...current,
+    ...changes,
+    orderNumber: current.orderNumber,
+    updatedAt: new Date().toISOString(),
+  }
   if (!isStoredOrder(updated)) return null
   store.orders[orderNumber] = updated
   return writeStore(store) ? updated : null

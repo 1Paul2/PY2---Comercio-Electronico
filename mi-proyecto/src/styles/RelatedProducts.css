@@ -1,6 +1,6 @@
 /* Carrusel horizontal de "Productos relacionados" en la vista de detalle
    (misma categoría y/o marca que el producto actual). Sin auto-rotación:
-   navegación manual con flechas + scroll táctil/rueda. */
+   navegación manual con flechas laterales + deslizamiento táctil/rueda. */
 
 .related-products__header {
   display: flex;
@@ -16,39 +16,71 @@
   font-size: 1.1rem;
 }
 
-.related-products__nav {
-  display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
+/* Contenedor de la fila: sirve de referencia para ubicar las flechas
+   sobre los costados de las tarjetas. */
+.related-products__viewport {
+  position: relative;
 }
 
-.related-products__nav button {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
+/* Flechas laterales: barras verticales altas, semitransparentes para no
+   tapar los productos, que se resaltan cuando el mouse está sobre la fila
+   (o el foco del teclado). Ocupan casi todo el alto de las tarjetas. */
+.related-products__arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 40px;
+  height: 70%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0 0 3px;
   border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--bg);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   color: var(--text-h);
-  font-size: 1.25rem;
+  font: inherit;
+  font-size: 1.75rem;
   line-height: 1;
+  box-shadow: var(--shadow);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  opacity: 0.45;
+  transform: translateY(-50%);
+  transition: opacity 0.2s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.related-products__nav button:hover:not(:disabled) {
-  background: var(--code-bg);
+.related-products__arrow--prev {
+  left: 0.5rem;
+}
+
+.related-products__arrow--next {
+  right: 0.5rem;
+}
+
+.related-products__viewport:hover .related-products__arrow,
+.related-products__viewport:focus-within .related-products__arrow {
+  opacity: 0.9;
+}
+
+.related-products__viewport .related-products__arrow:hover,
+.related-products__arrow:focus-visible {
+  opacity: 1;
+  background: var(--bg);
   border-color: var(--accent);
 }
 
-.related-products__nav button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+.related-products__arrow:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
 }
 
+/* Si todos los productos caben, no hay flechas. */
+.related-products__arrow[hidden] {
+  display: none;
+}
+
+/* La fila se desliza con flechas, rueda o dedo; la barra de
+   desplazamiento inferior se oculta. */
 .related-products__track {
   display: flex;
   gap: 1rem;
@@ -56,21 +88,11 @@
   scroll-snap-type: x proximity;
   padding: 6px 2px 0.75rem;
   margin: 0 -2px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
 }
 
 .related-products__track::-webkit-scrollbar {
-  height: 8px;
-}
-
-.related-products__track::-webkit-scrollbar-track {
-  background: var(--code-bg);
-  border-radius: 999px;
-}
-
-.related-products__track::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 999px;
+  display: none;
 }
 
 .related-products__item {
@@ -79,9 +101,30 @@
   scroll-snap-align: start;
 }
 
+/* Pantallas táctiles (sin mouse): no hay "pasar el mouse", así que las
+   flechas quedan siempre medio visibles y un poco más pequeñas. */
+@media (hover: none) {
+  .related-products__arrow {
+    opacity: 0.7;
+  }
+}
+
 @media (max-width: 480px) {
   .related-products__item {
     width: 168px;
+  }
+
+  .related-products__arrow {
+    width: 32px;
+    font-size: 1.4rem;
+  }
+
+  .related-products__arrow--prev {
+    left: 0.25rem;
+  }
+
+  .related-products__arrow--next {
+    right: 0.25rem;
   }
 
   .related-products__header h2 {

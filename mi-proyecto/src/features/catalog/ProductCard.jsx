@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatCRC } from './format'
 import { useCart } from '../../context/useCart'
+import { getAddButtonLabel, getCartAvailability, toCartItem } from './cartProduct'
 import '../../styles/ProductCard.css'
 
 /**
@@ -23,12 +24,10 @@ function ProductCard({ hit }) {
 
   const price = hit?.pricing?.b2c?.price_crc
   const inStock = hit?.pricing?.b2c?.in_stock
-  const totalStock = (hit.locations || []).reduce((sum, loc) => sum + (loc.stock_quantity || 0), 0)
-  const isAvailable = totalStock > 0 && inStock !== false && typeof price === 'number'
 
   const quantityInCart = items.find((item) => item.id === hit.objectID)?.quantity ?? 0
-  const isAtStockLimit = isAvailable && quantityInCart >= totalStock
-  const canAddToCart = isAvailable && !isAtStockLimit
+  const availability = getCartAvailability(hit, quantityInCart)
+  const { totalStock, isAvailable, isAtStockLimit, canAddToCart } = availability
 
   useEffect(() => {
     if (!justAdded) return undefined
@@ -46,15 +45,7 @@ function ProductCard({ hit }) {
    * Excepciones: No hay; el reducer del carrito valida el stock disponible.
    */
   function handleAddToCart() {
-    addItem({
-      id: hit.objectID,
-      name: hit.title,
-      price: hit.pricing?.b2c?.price_crc,
-      image: hit.image_url,
-      weight_kg: hit.facets?.weight_kg,
-      quantity: 1,
-      maxStock: totalStock,
-    })
+    addItem(toCartItem(hit, totalStock))
     setJustAdded(true)
   }
 
@@ -100,7 +91,7 @@ function ProductCard({ hit }) {
                 : `Agregar ${hit.title} al carrito`
           }
         >
-          {justAdded ? '✓ Agregado' : !isAvailable ? 'Agotado' : isAtStockLimit ? 'Máximo en carrito' : 'Agregar al carrito'}
+          {getAddButtonLabel(availability, justAdded)}
         </button>
       </div>
     </article>
