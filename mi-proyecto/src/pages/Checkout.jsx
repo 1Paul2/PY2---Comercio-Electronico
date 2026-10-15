@@ -448,7 +448,8 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
  *              seguido de subtotal general, IVA, envío y total.
  */
 function ReviewItems() {
-  const { items, subtotal, iva, shippingCost, total } = useCart()
+  // Solo los productos seleccionados en el carrito forman parte de la compra.
+  const { selectedItems: items, subtotal, iva, shippingCost, total } = useCart()
 
   return (
     <div className="checkout-review__group">
@@ -586,7 +587,7 @@ function CheckoutSummaryPanel({
   submitAttempted,
   missingCount,
 }) {
-  const { items, subtotal, iva, shippingCost, total, itemCount } = useCart()
+  const { selectedItems: items, subtotal, iva, shippingCost, total, selectedItemCount: itemCount } = useCart()
 
   return (
     <aside className="checkout-summary" aria-label="Resumen de la orden">
@@ -690,7 +691,9 @@ const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' 
 const FIELD_ORDER = ['firstName', 'lastName', 'email', 'phone', 'province', 'canton', 'address', 'extraInfo']
 
 function Checkout() {
-  const { items, subtotal, iva, shippingCost, total, clearCart } = useCart()
+  // `items` son solo los productos seleccionados para esta compra; `cartItems`
+  // es el carrito completo (para distinguir "carrito vacío" de "nada elegido").
+  const { selectedItems: items, items: cartItems, subtotal, iva, shippingCost, total, removeItems } = useCart()
   const submittingRef = useRef(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -860,11 +863,12 @@ function Checkout() {
       return
     }
 
-    // Solo una compra aprobada vacía el carrito y descarta el borrador. Si el
+    // Solo una compra aprobada quita del carrito los productos comprados y
+    // descarta el borrador; los no seleccionados siguen en el carrito. Si el
     // pago fue rechazado o falló, el usuario conserva todo para reintentar.
     if (paymentResponse.result === PAYMENT_RESULT.APPROVED) {
       clearDraft()
-      clearCart()
+      removeItems(order.items.map((item) => item.id))
     }
 
     submittingRef.current = false
@@ -883,10 +887,17 @@ function Checkout() {
             <IconCartEmpty size={60} />
           </div>
           <h1>No hay productos para comprar</h1>
-          <p>
-            Tu carrito está vacío, por eso no puedes continuar con la compra. Agrega al
-            menos un producto al carrito antes de iniciar el checkout.
-          </p>
+          {cartItems.length === 0 ? (
+            <p>
+              Tu carrito está vacío, por eso no puedes continuar con la compra. Agrega al
+              menos un producto al carrito antes de iniciar el checkout.
+            </p>
+          ) : (
+            <p>
+              Tienes productos en el carrito, pero ninguno está seleccionado para comprar.
+              Vuelve al carrito y marca los productos que quieres incluir.
+            </p>
+          )}
           <div className="checkout-empty__actions">
             <Link className="checkout-page__button" to="/productos">
               Explorar catálogo

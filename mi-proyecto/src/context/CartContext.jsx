@@ -16,6 +16,12 @@ import { CartContext } from './useCart'
  *
  * Persistencia (punto 2.9): solo se guardan los items en localStorage. Los
  * montos (subtotal, IVA) se recalculan siempre a partir de ellos.
+ *
+ * Selección para el checkout: cada línea tiene `selected`. Solo las líneas
+ * seleccionadas pasan al checkout, y los montos (subtotal, IVA, envío y
+ * total) se calculan únicamente sobre ellas. Un producto nuevo (o al que se
+ * le agregan unidades) queda seleccionado. Tras una compra aprobada se
+ * eliminan solo los productos comprados; los no seleccionados se conservan.
  */
 
 const CART_STORAGE_KEY = 'maquinaria-cr-cart'
@@ -73,6 +79,8 @@ function getInitialState() {
           items: items.filter(isValidStoredItem).map((item) => ({
             ...item,
             weight_kg: normalizeItemWeight(item.weight_kg),
+            // Carritos guardados antes de existir la selección: todo seleccionado.
+            selected: item.selected !== false,
           })),
         }
       : initialState
@@ -125,7 +133,7 @@ function cartReducer(state, action) {
           lastAddId: state.lastAddId + 1,
           items: state.items.map((item) =>
             item.id === id
-              ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity, weight_kg: itemWeight }
+              ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity, weight_kg: itemWeight, selected: true }
               : item
           ),
           lastMessage:
@@ -151,7 +159,7 @@ function cartReducer(state, action) {
       return {
         ...state,
         lastAddId: state.lastAddId + 1,
-        items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit, weight_kg: itemWeight }],
+        items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit, weight_kg: itemWeight, selected: true }],
         lastMessage:
           addedQuantity < requestedQuantity
             ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
@@ -216,6 +224,32 @@ function cartReducer(state, action) {
       }
     }
 
+    case 'TOGGLE_SELECTED': {
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === action.payload.id ? { ...item, selected: !item.selected } : item
+        ),
+      }
+    }
+
+    case 'SET_ALL_SELECTED': {
+      return {
+        ...state,
+        items: state.items.map((item) => ({ ...item, selected: action.payload.selected })),
+      }
+    }
+
+    case 'REMOVE_ITEMS': {
+      const ids = new Set(action.payload.ids)
+      return {
+        ...state,
+        items: state.items.filter((item) => !ids.has(item.id)),
+        lastMessage: null,
+        lastMessageType: null,
+      }
+    }
+
     case 'CLEAR_CART': {
       return {
         ...state,
@@ -267,18 +301,25 @@ export function CartProvider({ children }) {
   }, [state.lastMessage])
 
   const value = useMemo(() => {
+    // itemCount cuenta TODO el carrito (insignia del header); los montos se
+    // calculan solo con los productos seleccionados para el checkout.
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0)
-    const subtotal = state.items.reduce((total, item) => total + calculateSubtotal(item), 0)
+    const selectedItems = state.items.filter((item) => item.selected)
+    const selectedItemCount = selectedItems.reduce((total, item) => total + item.quantity, 0)
+    const subtotal = selectedItems.reduce((total, item) => total + calculateSubtotal(item), 0)
     const iva = Math.round(subtotal * IVA_RATE)
     const subtotalWithIva = subtotal + iva
-    const totalWeight = state.items.reduce((total, item) => total + item.weight_kg * item.quantity, 0)
-    const shippingCost = state.items.length === 0
+    const totalWeight = selectedItems.reduce((total, item) => total + item.weight_kg * item.quantity, 0)
+    const shippingCost = selectedItems.length === 0
       ? 0
       : Math.max(MIN_SHIPPING_COST, Math.ceil(totalWeight * SHIPPING_RATE_PER_KG))
     const total = subtotalWithIva + shippingCost
 
     return {
       items: state.items,
+      selectedItems,
+      selectedItemCount,
+      allSelected: state.items.length > 0 && selectedItems.length === state.items.length,
       lastMessage: state.lastMessage,
       lastMessageType: state.lastMessageType,
       lastAddId: state.lastAddId,
@@ -295,6 +336,9 @@ export function CartProvider({ children }) {
       removeItem: (id) => {
         dispatch({ type: 'REMOVE_ITEM', payload: { id } })
       },
+      toggleSelected: (id) => dispatch({ type: 'TOGGLE_SELECTED', payload: { id } }),
+      setAllSelected: (selected) => dispatch({ type: 'SET_ALL_SELECTED', payload: { selected } }),
+      removeItems: (ids) => dispatch({ type: 'REMOVE_ITEMS', payload: { ids } }),
       clearCart: () => dispatch({ type: 'CLEAR_CART' }),
       clearMessage: () => dispatch({ type: 'CLEAR_MESSAGE' }),
       hydrateCart: (items) => dispatch({ type: 'HYDRATE_CART', payload: { items } }),
