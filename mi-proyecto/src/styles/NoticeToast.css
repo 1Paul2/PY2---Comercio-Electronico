@@ -1,0 +1,166 @@
+/* NoticeToast.css — Aviso en la esquina superior izquierda que entra desde
+   la izquierda y no oscurece ni bloquea la página. Se cierra con "Aceptar"
+   o solo al pasar su tiempo. Lo usan la confirmación de compra y el
+   encabezado. */
+
+.notice-toast {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: min(540px, calc(100vw - 2rem));
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  animation: notice-toast-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Tono del aviso sobre un fondo sólido para que se lea bien. */
+.notice-toast--success {
+  background: linear-gradient(var(--success-bg), var(--success-bg)), var(--bg);
+  border-color: var(--success);
+}
+
+.notice-toast--danger {
+  background: linear-gradient(var(--danger-bg), var(--danger-bg)), var(--bg);
+  border-color: var(--danger);
+}
+
+.notice-toast--warning {
+  background: linear-gradient(var(--warning-bg), var(--warning-bg)), var(--bg);
+  border-color: var(--warning);
+}
+
+/* Aviso informativo (sin éxito ni error): color de la marca. */
+.notice-toast--info {
+  background: linear-gradient(var(--accent-bg), var(--accent-bg)), var(--bg);
+  border-color: var(--brand-strong);
+}
+
+.notice-toast__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+}
+
+.notice-toast__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.notice-toast--success .notice-toast__icon { background: var(--success); }
+.notice-toast--danger .notice-toast__icon { background: var(--danger); }
+.notice-toast--warning .notice-toast__icon { background: var(--warning); }
+.notice-toast--info .notice-toast__icon { background: var(--brand-strong); color: var(--brand-ink); }
+
+.notice-toast__text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.notice-toast__title {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.notice-toast--success .notice-toast__title { color: var(--success); }
+.notice-toast--danger .notice-toast__title { color: var(--danger); }
+.notice-toast--warning .notice-toast__title { color: var(--warning); }
+.notice-toast--info .notice-toast__title { color: var(--text-h); }
+
+.notice-toast__message,
+.notice-toast__reason {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.notice-toast__reason {
+  margin-top: 0.4rem;
+  color: var(--text-h);
+}
+
+/* "Aceptar" en la esquina inferior derecha del aviso. */
+.notice-toast__accept {
+  display: block;
+  margin: 0.75rem 0 0 auto;
+  min-height: 36px;
+  padding: 0.4rem 1.1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.notice-toast__accept:hover {
+  background: var(--brand-strong);
+}
+
+.notice-toast__accept:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: 2px;
+}
+
+/* Al cerrarse vuelve a salir por la izquierda, por donde entró. */
+.notice-toast--leaving {
+  animation: notice-toast-out 0.35s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  pointer-events: none;
+}
+
+@keyframes notice-toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-110%);
+  }
+}
+
+/* Entra deslizándose desde la izquierda. */
+@keyframes notice-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-110%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice-toast {
+    animation: none;
+  }
+}
+
+/* Celular: ocupa el ancho de la parte superior, con margen a los lados. */
+@media (max-width: 600px) {
+  .notice-toast {
+    top: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+  }
+}
