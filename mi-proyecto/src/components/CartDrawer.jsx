@@ -5,7 +5,19 @@ import { formatCRC } from '../features/catalog/format'
 import '../styles/CartDrawer.css'
 
 function CartDrawer({ ref }) {
-  const { items, increment, decrement, removeItem, subtotalWithIva } = useCart()
+  const {
+    items,
+    selectedItems,
+    selectedItemCount,
+    allSelected,
+    increment,
+    decrement,
+    removeItem,
+    toggleSelected,
+    setAllSelected,
+    subtotalWithIva,
+  } = useCart()
+  const hasSelection = selectedItems.length > 0
   const [pendingRemoval, setPendingRemoval] = useState(null)
   const navigate = useNavigate()
 
@@ -29,7 +41,7 @@ function CartDrawer({ ref }) {
   }
 
   function handleStartCheckout() {
-    if (items.length === 0) return
+    if (!hasSelection) return
     closeDrawer()
     navigate('/checkout')
   }
@@ -56,9 +68,36 @@ function CartDrawer({ ref }) {
             </div>
           ) : (
             <>
+              {/* Selección de productos para el checkout, igual que en la página del carrito. */}
+              <div className="cart-drawer__select-all">
+                <label>
+                  <input
+                    type="checkbox"
+                    className="cart-drawer__checkbox"
+                    checked={allSelected}
+                    onChange={() => setAllSelected(!allSelected)}
+                  />
+                  <span>{allSelected ? 'Quitar selección' : 'Seleccionar todos'}</span>
+                </label>
+                <span className="cart-drawer__select-count">
+                  {selectedItems.length} de {items.length}
+                </span>
+              </div>
+
               <ul className="cart-drawer__list">
                 {items.map((item) => (
-                  <li key={item.id} className="cart-drawer__item">
+                  <li
+                    key={item.id}
+                    className={`cart-drawer__item${item.selected ? '' : ' cart-drawer__item--unselected'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="cart-drawer__checkbox cart-drawer__item-check"
+                      checked={item.selected}
+                      onChange={() => toggleSelected(item.id)}
+                      aria-label={`Incluir ${item.name} en la compra`}
+                    />
+
                     <button
                       type="button"
                       className="cart-drawer__remove"
@@ -111,17 +150,27 @@ function CartDrawer({ ref }) {
 
               <footer className="cart-drawer__footer">
                 <div className="cart-drawer__total">
-                  <span>Subtotal (IVA incluido)</span>
+                  <span>
+                    Total seleccionado
+                    <small>
+                      IVA incluido · {selectedItemCount} {selectedItemCount === 1 ? 'artículo' : 'artículos'}
+                    </small>
+                  </span>
                   <strong>{formatCRC(subtotalWithIva)}</strong>
                 </div>
                 <button
                   type="button"
                   className="cart-drawer__primary"
                   onClick={handleStartCheckout}
-                  disabled={items.length === 0}
+                  disabled={!hasSelection}
                 >
-                  Iniciar checkout
+                  Ir a checkout
                 </button>
+                {!hasSelection && (
+                  <p className="cart-drawer__hint" role="status">
+                    Selecciona al menos un producto para ir a checkout.
+                  </p>
+                )}
                 <Link className="cart-drawer__secondary" to="/carrito" onClick={closeDrawer}>
                   Ir al carrito
                 </Link>
