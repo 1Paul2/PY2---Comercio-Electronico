@@ -18,6 +18,7 @@ import { resolveScenario } from '../features/payment/scenarioSelector'
 import { formatCRC } from '../features/catalog/format'
 import DevScenarioPanel from '../components/DevScenarioPanel'
 import PurchaseReceipt from '../components/PurchaseReceipt'
+import NoticeToast from '../components/NoticeToast'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -345,7 +346,7 @@ function getOutcome(order) {
 
 function Confirmacion() {
   const { state } = useLocation()
-  const { clearCart, items: cartItems } = useCart()
+  const { removeItems, items: cartItems } = useCart()
 
   // La orden se lee una sola vez al montar; luego vive en el estado para que
   // los reintentos actualicen la pantalla sin recargar la página.
@@ -357,19 +358,21 @@ function Confirmacion() {
   const [retryError, setRetryError] = useState(null)
   const [copyStatus, setCopyStatus] = useState(null)
   const retryingRef = useRef(false)
-  const bannerRef = useRef(null)
+  // El mensaje del resultado se muestra como un aviso en la esquina superior
+  // izquierda que no tapa la página; se cierra con "Aceptar" o solo a los 4
+  // segundos. Vuelve a aparecer con cada resultado nuevo (p. ej. tras un reintento).
+  const [showResult, setShowResult] = useState(true)
 
   // Mientras se reintenta el pago, se advierte antes de recargar o cerrar.
   useWarnBeforeLeave(retrying)
 
   // Cada vez que se muestra un resultado (al llegar o tras un reintento), la
-  // pestaña del navegador lo indica en su título y el foco pasa al mensaje
-  // principal para que los lectores de pantalla lo anuncien.
+  // pestaña del navegador lo indica en su título. El aviso usa role="alert",
+  // así los lectores de pantalla lo anuncian sin mover el foco.
   useEffect(() => {
     if (!order) return undefined
     const previousTitle = document.title
     document.title = `${getOutcome(order).title} | Maquinaria CR`
-    bannerRef.current?.focus({ preventScroll: true })
     return () => {
       document.title = previousTitle
     }
@@ -419,6 +422,7 @@ function Confirmacion() {
       const latest = getOrder(order.orderNumber) ?? order
       if (!isOrderPayable(latest)) {
         setOrder(latest)
+        setShowResult(true)
         return
       }
 
@@ -429,12 +433,14 @@ function Confirmacion() {
         return
       }
 
+      // Al aprobarse el reintento se quitan del carrito solo los productos
+      // de esta orden; lo demás que haya en el carrito se conserva.
       if (response.result === PAYMENT_RESULT.APPROVED) {
-        clearCart()
+        removeItems(latest.items.map((item) => item.id))
         clearCheckoutDraft()
       }
       setOrder(updated)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      setShowResult(true)
     } catch {
       setRetryError('No pudimos reintentar el pago. Inténtalo de nuevo en unos segundos.')
     } finally {
@@ -504,24 +510,26 @@ function Confirmacion() {
         <CheckoutStepper currentStep="confirmation" isComplete={isApproved} />
       </header>
 
-      {/* Banner de resultado principal */}
-      <section
-        ref={bannerRef}
-        tabIndex={-1}
-        className={`confirmation-banner confirmation-banner--${outcome.tone}`}
-        role="status"
-      >
-        <span className="confirmation-banner__icon" aria-hidden="true">{outcome.icon}</span>
-        <div className="confirmation-banner__text">
-          <h2 className="confirmation-banner__title">{outcome.title}</h2>
-          <p className="confirmation-banner__message">{outcome.message}</p>
+      {/* Aviso del resultado: entra desde la izquierda en la esquina superior,
+          deja ver y usar la página, y se cierra con "Aceptar" o a los 4 segundos. */}
+      {showResult && (
+        <NoticeToast
+          // La key reinicia el aviso (y su temporizador) con cada resultado nuevo.
+          key={`${order.paymentStatus}-${order.updatedAt ?? ''}`}
+          autoCloseMs={4000}
+          tone={outcome.tone}
+          icon={outcome.icon}
+          title={outcome.title}
+          message={outcome.message}
+          onAccept={() => setShowResult(false)}
+        >
           {reasonText && (
-            <p className="confirmation-banner__reason">
+            <p className="notice-toast__reason">
               <strong>Motivo:</strong> {reasonText.reason} {reasonText.nextStep}
             </p>
           )}
-        </div>
-      </section>
+        </NoticeToast>
+      )}
 
       {/* Banner de error al reintentar */}
       {retryError && (

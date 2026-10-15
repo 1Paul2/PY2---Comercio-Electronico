@@ -144,17 +144,20 @@ html:has(.cart-drawer[open]) {
   list-style: none;
 }
 
+/* Cada producto es una fila de la lista separada por una línea a todo lo
+   ancho (sin tarjetas redondeadas), igual que en la página del carrito. */
 .cart-drawer__item {
   position: relative;
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: auto 76px minmax(0, 1fr);
   gap: 0.9rem;
-  padding: 0.9rem;
-  margin-bottom: 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
   background: var(--bg);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.cart-drawer__item:first-child {
+  border-top: 1px solid var(--border);
 }
 
 .cart-drawer__item:last-child {
@@ -173,7 +176,7 @@ html:has(.cart-drawer[open]) {
 .cart-drawer__remove {
   position: absolute;
   top: 0.6rem;
-  right: 0.6rem;
+  right: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -292,6 +295,78 @@ html:has(.cart-drawer[open]) {
   justify-content: space-between;
   gap: 0.75rem;
   color: var(--text-h);
+}
+
+.cart-drawer__total > span {
+  display: grid;
+  text-align: left;
+}
+
+.cart-drawer__total small {
+  color: var(--text);
+  font-size: 0.75rem;
+}
+
+/* ---------- Selección de productos para el checkout ---------- */
+
+.cart-drawer__select-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  color: var(--text-h);
+  font-size: 0.88rem;
+}
+
+.cart-drawer__select-all label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cart-drawer__select-count {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.cart-drawer__checkbox {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--brand-strong);
+  cursor: pointer;
+}
+
+.cart-drawer__checkbox:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: 3px;
+}
+
+.cart-drawer__item-check {
+  align-self: center;
+}
+
+/* Producto que no pasará al checkout: atenuado y con borde punteado. */
+.cart-drawer__item--unselected .cart-drawer__image,
+.cart-drawer__item--unselected .cart-drawer__item-info {
+  opacity: 0.55;
+}
+
+.cart-drawer__primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Aviso bajo "Ir a checkout" cuando no hay productos seleccionados. */
+.cart-drawer__hint {
+  margin: 0;
+  color: var(--warning);
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .cart-drawer__total strong {
@@ -440,6 +515,34 @@ html:has(.cart-drawer[open]) {
 
   .cart-drawer__close {
     min-width: 90px;
+  }
+}
+
+/* Celular: el panel conserva su ancho (no tapa toda la pantalla). Para que
+   el producto quepa con la casilla de selección, la casilla se coloca sobre
+   la esquina de la imagen en lugar de ocupar su propia columna. */
+@media (max-width: 480px) {
+  .cart-drawer__item {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 0.6rem;
+    padding: 0.75rem 0;
+  }
+
+  .cart-drawer__item-check {
+    position: absolute;
+    top: 0.5rem;
+    left: 0;
+    z-index: 1;
+    background: var(--bg);
+  }
+
+  .cart-drawer__image {
+    width: 56px;
+    height: 56px;
+  }
+
+  .cart-drawer__item-info {
+    padding-right: 1.75rem;
   }
 }
 

@@ -37,6 +37,12 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
       container: containerRef.current,
       placeholder: 'Buscar productos...',
       openOnFocus: true,
+      // Por defecto, en pantallas de menos de 680px la librería cambia a un
+      // "modo móvil" (un botón que abre otra pantalla en blanco, con "Cancel"
+      // en inglés y los nombres cortados). 'none' lo desactiva para que en el
+      // celular el buscador funcione igual que en la web: el campo queda en el
+      // encabezado y las sugerencias se despliegan debajo.
+      detachedMediaQuery: 'none',
       plugins: [recentSearchesPlugin],
       getSources() {
         return [createProductSuggestionsSource({ onSelect: handleQuery })]

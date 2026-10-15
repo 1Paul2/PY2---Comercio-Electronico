@@ -16,6 +16,8 @@
   padding: 8px 12px;
   cursor: pointer;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Miniatura del producto en el autocomplete. */
@@ -27,10 +29,13 @@
   flex-shrink: 0;
 }
 
-/* Columna de texto: marca y título. */
+/* Columna de texto: marca y título. min-width: 0 permite que el título
+   se recorte con "…" en pantallas angostas en vez de cortarse en seco. */
 .aa-ProductItem-content {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
 }
 

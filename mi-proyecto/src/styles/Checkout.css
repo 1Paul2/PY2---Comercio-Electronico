@@ -9,6 +9,7 @@
    ============================================================ */
 
 .checkout-page {
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
   /* Espacio inferior extra para que el simulador Sandbox flotante no tape
@@ -242,6 +243,24 @@
 .checkout-stepper__step--active .checkout-stepper__label {
   color: var(--text-h);
   font-weight: 700;
+}
+
+/* Celular: las tres etiquetas no caben en una línea y ensanchaban toda la
+   página. Se muestra solo la del paso actual (el texto "Paso X de 3" de
+   arriba da el contexto) y los demás pasos quedan como círculos. */
+@media (max-width: 520px) {
+  .checkout-stepper__step:not(.checkout-stepper__step--active) .checkout-stepper__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .checkout-stepper__line {
+    margin: 0 0.4rem;
+  }
 }
 
 /* ============================================================
@@ -522,6 +541,14 @@
   text-align: left;
 }
 
+/* Celular: la tabla se muestra como lista (cada fila es un bloque). La tabla
+   y el tbody también deben ser bloques; si no, conservan el ancho de tabla
+   y empujan los montos fuera de la pantalla. */
+.checkout-review__table,
+.checkout-review__table tbody {
+  display: block;
+}
+
 .checkout-review__table thead {
   position: absolute;
   width: 1px;
@@ -564,6 +591,14 @@
 }
 
 @media (min-width: 481px) {
+  .checkout-review__table {
+    display: table;
+  }
+
+  .checkout-review__table tbody {
+    display: table-row-group;
+  }
+
   .checkout-review__table thead {
     position: static;
     width: auto;
@@ -927,85 +962,6 @@
 
 /* El banner recibe el foco al mostrar el resultado (para lectores de
    pantalla); no necesita el contorno de foco porque no es interactivo. */
-.confirmation-banner:focus {
-  outline: none;
-}
-
-.confirmation-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  margin-bottom: 1.5rem;
-}
-
-.confirmation-banner__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  font-weight: 700;
-  flex-shrink: 0;
-  color: white;
-}
-
-.confirmation-banner__title {
-  margin: 0 0 0.25rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.confirmation-banner__message {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--text);
-}
-
-/* Motivo del pago fallido y qué puede hacer el usuario. */
-.confirmation-banner__reason {
-  margin: 0.5rem 0 0;
-  font-size: 0.9rem;
-  color: var(--text-h);
-}
-
-.confirmation-banner--success {
-  background-color: var(--success-bg);
-  border-color: var(--success);
-}
-.confirmation-banner--success .confirmation-banner__icon {
-  background-color: var(--success);
-}
-.confirmation-banner--success .confirmation-banner__title {
-  color: var(--success);
-}
-
-.confirmation-banner--danger {
-  background-color: var(--danger-bg);
-  border-color: var(--danger);
-}
-.confirmation-banner--danger .confirmation-banner__icon {
-  background-color: var(--danger);
-}
-.confirmation-banner--danger .confirmation-banner__title {
-  color: var(--danger);
-}
-
-.confirmation-banner--warning {
-  background-color: var(--warning-bg);
-  border-color: var(--warning);
-}
-.confirmation-banner--warning .confirmation-banner__icon {
-  background-color: var(--warning);
-}
-.confirmation-banner--warning .confirmation-banner__title {
-  color: var(--warning);
-}
-
 /* ============================================================
    Detalles de la orden en confirmación
    ============================================================ */
