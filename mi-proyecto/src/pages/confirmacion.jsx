@@ -359,7 +359,7 @@ function Confirmacion() {
   const [copyStatus, setCopyStatus] = useState(null)
   const retryingRef = useRef(false)
   // El mensaje del resultado se muestra como un aviso en la esquina superior
-  // izquierda que no tapa la página; se cierra con "Aceptar" o solo a los 4
+  // izquierda que no tapa la página; se cierra con "Aceptar" o solo a los 5
   // segundos. Vuelve a aparecer con cada resultado nuevo (p. ej. tras un reintento).
   const [showResult, setShowResult] = useState(true)
 
@@ -511,12 +511,12 @@ function Confirmacion() {
       </header>
 
       {/* Aviso del resultado: entra desde la izquierda en la esquina superior,
-          deja ver y usar la página, y se cierra con "Aceptar" o a los 4 segundos. */}
+          deja ver y usar la página, y se cierra con "Aceptar" o a los 5 segundos. */}
       {showResult && (
         <NoticeToast
           // La key reinicia el aviso (y su temporizador) con cada resultado nuevo.
           key={`${order.paymentStatus}-${order.updatedAt ?? ''}`}
-          autoCloseMs={4000}
+          autoCloseMs={5000}
           tone={outcome.tone}
           icon={outcome.icon}
           title={outcome.title}
