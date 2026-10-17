@@ -69,7 +69,7 @@ function SearchHeader({ redirectSearchTo }) {
   const isCartPage = pathname === '/carrito'
   // En /carrito, tocar el ícono del carrito avisa que ya se está ahí en vez
   // de recargar la misma página. Es un contador (0 = oculto) para que cada
-  // toque vuelva a mostrar el aviso con sus 2 segundos completos.
+  // toque vuelva a mostrar el aviso con sus 3 segundos completos.
   const [cartNoticeId, setCartNoticeId] = useState(0)
 
   useEffect(() => {
@@ -153,7 +153,7 @@ function SearchHeader({ redirectSearchTo }) {
           title="Ya estás en tu carrito"
           message="Aquí puedes revisar tus productos, elegir cuáles comprar y continuar con el pago."
           onAccept={() => setCartNoticeId(0)}
-          autoCloseMs={2000}
+          autoCloseMs={3000}
         />
       )}
     </header>
