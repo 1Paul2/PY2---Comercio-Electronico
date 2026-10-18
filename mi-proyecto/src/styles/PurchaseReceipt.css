@@ -1,0 +1,273 @@
+/* PurchaseReceipt.css — Comprobante de pago imprimible.
+   Oculto en pantalla; en impresión reemplaza a la página de confirmación.
+   Usa colores fijos (no los tokens del tema) para que el papel siempre se
+   imprima claro aunque la app esté en modo oscuro. */
+
+.receipt {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: letter;
+    margin: 14mm 12mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  /* En impresión solo queda el comprobante. */
+  .confirmation-page > :not(.receipt) {
+    display: none !important;
+  }
+
+  .receipt {
+    --receipt-ink: #111827;
+    --receipt-muted: #4b5563;
+    --receipt-line: #d1d5db;
+    --receipt-soft: #f3f4f6;
+    --receipt-brand: #ffd400;
+    --receipt-paid: #15803d;
+
+    display: block;
+    color: var(--receipt-ink);
+    background: #fff;
+    font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.45;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .receipt p {
+    margin: 0;
+  }
+
+  /* ---------- Encabezado ---------- */
+  .receipt__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    padding-bottom: 14pt;
+    border-bottom: 3pt solid var(--receipt-brand);
+  }
+
+  .receipt__brand {
+    display: flex;
+    align-items: center;
+    gap: 10pt;
+  }
+
+  .receipt__logo {
+    width: 40pt;
+    height: 40pt;
+    color: var(--receipt-ink);
+    flex-shrink: 0;
+  }
+
+  .receipt__store-name {
+    font-size: 17pt;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .receipt__store-meta {
+    font-size: 9pt;
+    color: var(--receipt-muted);
+  }
+
+  .receipt__doc {
+    text-align: right;
+  }
+
+  .receipt__doc-type {
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--receipt-muted);
+  }
+
+  .receipt__doc-number {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 13pt;
+    font-weight: 700;
+    margin: 2pt 0 6pt !important;
+  }
+
+  .receipt__stamp {
+    display: inline-block;
+    padding: 2pt 10pt;
+    font-size: 9pt;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--receipt-paid);
+    border: 1.5pt solid var(--receipt-paid);
+    border-radius: 4pt;
+  }
+
+  /* ---------- Datos del documento ---------- */
+  .receipt__meta {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10pt;
+    margin: 14pt 0;
+    padding: 10pt 12pt;
+    background: var(--receipt-soft);
+    border-radius: 4pt;
+  }
+
+  .receipt__meta dt,
+  .receipt__label {
+    margin: 0 0 2pt;
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--receipt-muted);
+  }
+
+  .receipt__meta dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .receipt__mono {
+    font-family: ui-monospace, Consolas, monospace;
+  }
+
+  /* ---------- Cliente / Enviar a ---------- */
+  .receipt__parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 16pt;
+  }
+
+  .receipt__strong {
+    font-weight: 700;
+  }
+
+  .receipt__note {
+    margin-top: 4pt !important;
+    font-size: 9pt;
+    font-style: italic;
+    color: var(--receipt-muted);
+  }
+
+  /* ---------- Detalle de productos ---------- */
+  .receipt__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .receipt__table thead th {
+    padding: 6pt 8pt;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-align: left;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--receipt-ink);
+  }
+
+  .receipt__table tbody td {
+    padding: 7pt 8pt;
+    vertical-align: top;
+    border-bottom: 0.75pt solid var(--receipt-line);
+  }
+
+  .receipt__table tbody tr {
+    break-inside: avoid;
+  }
+
+  .receipt__table tbody tr:nth-child(even) td {
+    background: #fafafa;
+  }
+
+  .receipt__table .receipt__num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .receipt__col-index {
+    width: 22pt;
+    color: var(--receipt-muted);
+  }
+
+  .receipt__sku {
+    display: block;
+    font-size: 8pt;
+    color: var(--receipt-muted);
+  }
+
+  /* ---------- Totales ---------- */
+  .receipt__summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-top: 14pt;
+    break-inside: avoid;
+  }
+
+  .receipt__thanks {
+    max-width: 48%;
+    padding-top: 4pt;
+    font-size: 9.5pt;
+    color: var(--receipt-muted);
+  }
+
+  .receipt__totals {
+    width: 46%;
+    margin: 0;
+  }
+
+  .receipt__totals > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 3pt 0;
+  }
+
+  .receipt__totals dt {
+    color: var(--receipt-muted);
+  }
+
+  .receipt__totals dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .receipt__totals .receipt__grand-total {
+    margin: 4pt 0;
+    padding: 7pt 10pt;
+    background: var(--receipt-brand);
+    border-radius: 4pt;
+  }
+
+  .receipt__totals .receipt__grand-total dt,
+  .receipt__totals .receipt__grand-total dd {
+    color: var(--receipt-ink);
+    font-size: 12pt;
+    font-weight: 800;
+  }
+
+  /* ---------- Pie ---------- */
+  .receipt__footer {
+    margin-top: 22pt;
+    padding-top: 10pt;
+    border-top: 0.75pt solid var(--receipt-line);
+    font-size: 8.5pt;
+    color: var(--receipt-muted);
+    break-inside: avoid;
+  }
+
+  .receipt__footer p + p {
+    margin-top: 4pt;
+  }
+}

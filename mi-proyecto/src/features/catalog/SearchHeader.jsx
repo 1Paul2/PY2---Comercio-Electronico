@@ -4,9 +4,24 @@ import { useSearchBox } from 'react-instantsearch'
 import ThemeToggle from '../../components/ThemeToggle'
 import LogoIcon from '../../components/LogoIcon'
 import CartDrawer from '../../components/CartDrawer'
+import NoticeToast from '../../components/NoticeToast'
 import { useCart } from '../../context/useCart'
 import SearchAutocomplete from './SearchAutocomplete'
 import '../../styles/SearchHeader.css'
+
+/**
+ * Nombre: CartNoticeIcon
+ * Descripción: Ícono de carrito para el aviso "Ya estás en tu carrito".
+ */
+function CartNoticeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  )
+}
 
 /**
  * Nombre: CartLinkContent
@@ -52,6 +67,10 @@ function SearchHeader({ redirectSearchTo }) {
   const [lastAddIdOnMount] = useState(lastAddId)
   const hasNewAdd = lastAddId !== lastAddIdOnMount
   const isCartPage = pathname === '/carrito'
+  // En /carrito, tocar el ícono del carrito avisa que ya se está ahí en vez
+  // de recargar la misma página. Es un contador (0 = oculto) para que cada
+  // toque vuelva a mostrar el aviso con sus 3 segundos completos.
+  const [cartNoticeId, setCartNoticeId] = useState(0)
 
   useEffect(() => {
     const dialog = cartDrawerRef.current
@@ -99,7 +118,15 @@ function SearchHeader({ redirectSearchTo }) {
 
       <div className="search-header__right">
         {isCartPage ? (
-          <Link to="/carrito" className="cart-link" aria-label={`Carrito, ${itemCount} unidades`}>
+          <Link
+            to="/carrito"
+            className="cart-link"
+            aria-label={`Carrito, ${itemCount} unidades`}
+            onClick={(event) => {
+              event.preventDefault()
+              setCartNoticeId((id) => id + 1)
+            }}
+          >
             <CartLinkContent itemCount={itemCount} pulseKey={lastAddId} shouldPulse={hasNewAdd} />
           </Link>
         ) : (
@@ -117,6 +144,18 @@ function SearchHeader({ redirectSearchTo }) {
       </div>
 
       {!isCartPage && <CartDrawer ref={cartDrawerRef} />}
+
+      {isCartPage && cartNoticeId > 0 && (
+        <NoticeToast
+          key={cartNoticeId}
+          tone="info"
+          icon={<CartNoticeIcon />}
+          title="Ya estás en tu carrito"
+          message="Aquí puedes revisar tus productos, elegir cuáles comprar y continuar con el pago."
+          onAccept={() => setCartNoticeId(0)}
+          autoCloseMs={3000}
+        />
+      )}
     </header>
   )
 }
