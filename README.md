@@ -156,7 +156,7 @@ El usuario no puede avanzar con errores: el botón no navega y se marcan todos l
 
 **Número de orden:** `MCR-AAAAMMDD-XXXXXXXX` — por ejemplo `MCR-20261017-AMP8CMCG`. El prefijo identifica la tienda, la fecha ubica la orden en el tiempo y el sufijo aleatorio evita colisiones.
 
-`buildOrder()` arma la orden con el número, la fecha, los datos del comprador y de entrega, los productos con cantidades y precios, subtotal, IVA, envío, total, moneda, y **ambos estados en `PENDING`**. Lanza un error si faltan datos o los montos no cuadran: antes que construir una orden corrupta y mandarla a cobrar, falla de forma visible.
+`buildOrder()` arma la orden con el número, la fecha, los datos del comprador y de entrega, los productos con cantidades y precios, subtotal, IVA, envío, total, moneda, la aceptación de los términos y condiciones (`termsAcceptance` con la versión aceptada y la fecha) y **ambos estados en `PENDING`**. Lanza un error si faltan datos, no se aceptaron los términos o los montos no cuadran: antes que construir una orden corrupta y mandarla a cobrar, falla de forma visible.
 
 La orden se guarda en `localStorage` (`orderStorage.js`) para que la confirmación sobreviva a una recarga y el reintento no obligue a llenar el formulario otra vez.
 

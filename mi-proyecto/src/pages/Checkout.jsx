@@ -15,6 +15,7 @@ import { requestPayment } from '../features/payment/paymentClient'
 import { useWarnBeforeLeave } from '../features/payment/useWarnBeforeLeave'
 import { generateUniqueOrderNumber } from '../features/orders/orderNumber'
 import { buildOrder } from '../features/orders/buildOrder'
+import { TERMS_VERSION } from '../features/policies/policyPages'
 import { saveOrder } from '../features/orders/orderStorage'
 import { applyPaymentResult } from '../features/orders/applyPaymentResult'
 import { PAYMENT_RESULT } from '../features/payment/paymentContract'
@@ -892,6 +893,8 @@ function Checkout() {
           quantity: item.quantity,
         })),
         totals: { subtotal, iva, shippingCost, total },
+        // Queda registrado que el cliente aceptó los términos y cuál versión.
+        termsAcceptance: { accepted: termsAccepted, version: TERMS_VERSION },
       })
     } catch {
       finishWithError('Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.')
