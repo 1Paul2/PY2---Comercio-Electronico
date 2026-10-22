@@ -586,6 +586,9 @@ function CheckoutSummaryPanel({
   processingStage,
   submitAttempted,
   missingCount,
+  termsAccepted,
+  termsError,
+  onTermsChange,
 }) {
   const { selectedItems: items, subtotal, iva, shippingCost, total, selectedItemCount: itemCount } = useCart()
 
@@ -647,6 +650,35 @@ function CheckoutSummaryPanel({
           </p>
         )}
 
+        {/* El cliente debe aceptar los términos antes de pagar; el enlace se
+            abre en otra pestaña para no perder lo escrito en el formulario. */}
+        <div className={`checkout-terms${termsError ? ' checkout-terms--error' : ''}`}>
+          <label className="checkout-terms__label" htmlFor="termsAccepted">
+            <input
+              id="termsAccepted"
+              type="checkbox"
+              className="checkout-terms__checkbox"
+              checked={termsAccepted}
+              onChange={(event) => onTermsChange(event.target.checked)}
+              disabled={processing}
+              aria-invalid={Boolean(termsError)}
+              aria-describedby={termsError ? 'termsAccepted-error' : undefined}
+            />
+            <span>
+              He leído y acepto los{' '}
+              <Link to="/terminos" target="_blank" rel="noopener noreferrer">
+                términos y condiciones
+              </Link>{' '}
+              de compra.
+            </span>
+          </label>
+          {termsError && (
+            <p id="termsAccepted-error" className="checkout-field__error" role="alert">
+              <IconAlertTriangle size={14} aria-hidden="true" /> {termsError}
+            </p>
+          )}
+        </div>
+
         <button
           type="button"
           className="checkout-summary__confirm"
@@ -674,7 +706,10 @@ function CheckoutSummaryPanel({
         </div>
 
         <p className="checkout-summary__legal">
-          Al confirmar aceptas nuestros términos y condiciones de compra.
+          Consulta también nuestras políticas de{' '}
+          <Link to="/envios" target="_blank" rel="noopener noreferrer">envíos</Link>,{' '}
+          <Link to="/devoluciones" target="_blank" rel="noopener noreferrer">devoluciones</Link> y{' '}
+          <Link to="/privacidad" target="_blank" rel="noopener noreferrer">privacidad</Link>.
         </p>
       </div>
     </aside>
@@ -689,6 +724,7 @@ const INITIAL_BUYER = { firstName: '', lastName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
 // Orden visual de los campos; se usa para enfocar el primer error.
 const FIELD_ORDER = ['firstName', 'lastName', 'email', 'phone', 'province', 'canton', 'address', 'extraInfo']
+const TERMS_REQUIRED_MESSAGE = 'Debes aceptar los términos y condiciones para confirmar la compra.'
 
 function Checkout() {
   // `items` son solo los productos seleccionados para esta compra; `cartItems`
@@ -724,6 +760,8 @@ function Checkout() {
   const [processing, setProcessing] = useState(false)
   const [processingStage, setProcessingStage] = useState(null)
   const [submitError, setSubmitError] = useState(null)
+  // La aceptación no se guarda en el borrador: se pide en cada compra.
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   // Si el usuario intenta recargar o cerrar mientras se paga, se le advierte.
   useWarnBeforeLeave(processing)
@@ -736,6 +774,8 @@ function Checkout() {
   const canConfirm = buyerIsValid && deliveryIsValid && !processing
 
   const missingCount = Object.keys(buyerErrors).length + Object.keys(deliveryErrors).length
+  // El aviso aparece después del primer intento de confirmar sin aceptar.
+  const termsError = submitAttempted && !termsAccepted ? TERMS_REQUIRED_MESSAGE : null
 
   useEffect(() => {
     if (items.length === 0) return
@@ -797,7 +837,8 @@ function Checkout() {
   /**
    * Nombre: handleConfirm
    * Descripción: Flujo completo al confirmar la compra:
-   *                1. Valida los formularios (si hay errores, no avanza).
+   *                1. Valida los formularios y que se hayan aceptado los
+   *                   términos (si falta algo, no avanza).
    *                2. Construye y guarda la orden en estado PENDING.
    *                3. Envía la solicitud de pago al Sandbox.
    *                4. Aplica el resultado a la orden (applyPaymentResult).
@@ -817,6 +858,16 @@ function Checkout() {
       setBuyerTouched({ firstName: true, lastName: true, email: true, phone: true })
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
       focusFirstInvalidField()
+      return
+    }
+
+    // Con los datos completos, lo único que falta es aceptar los términos.
+    if (!termsAccepted) {
+      const checkbox = document.getElementById('termsAccepted')
+      if (checkbox) {
+        checkbox.focus({ preventScroll: true })
+        checkbox.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
       return
     }
 
@@ -991,6 +1042,9 @@ function Checkout() {
           processingStage={processingStage}
           submitAttempted={submitAttempted}
           missingCount={missingCount}
+          termsAccepted={termsAccepted}
+          termsError={termsError}
+          onTermsChange={setTermsAccepted}
         />
       </div>
 
