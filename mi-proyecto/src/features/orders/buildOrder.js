@@ -45,14 +45,25 @@ function buildOrderItems(cartItems) {
  *   - delivery: { province, canton, address, extraInfo }.
  *   - items: items del carrito.
  *   - totals: { subtotal, iva, shippingCost, total } del carrito.
- *   - createdAt (opcional): Date; por defecto la fecha actual.
+ *   - termsAcceptance: { accepted, version } con la aceptación de los
+ *     términos y condiciones que el cliente marcó en el checkout.
+ *   - createdAt (opcional): Date; por defecto la fecha actual. También es
+ *     la fecha en que quedan aceptados los términos.
  * Salidas: objeto orden (ver forma arriba).
  * Excepciones: Lanza Error si falta el número de orden, hay datos del
- *              comprador o la entrega incompletos, no hay productos o los
- *              montos no cuadran. El llamador debe mostrar un mensaje
- *              comprensible al usuario.
+ *              comprador o la entrega incompletos, no se aceptaron los
+ *              términos, no hay productos o los montos no cuadran. El
+ *              llamador debe mostrar un mensaje comprensible al usuario.
  */
-export function buildOrder({ orderNumber, buyer, delivery, items, totals, createdAt = new Date() }) {
+export function buildOrder({
+  orderNumber,
+  buyer,
+  delivery,
+  items,
+  totals,
+  termsAcceptance,
+  createdAt = new Date(),
+}) {
   if (!isValidOrderNumber(orderNumber)) {
     throw new Error('Número de orden inválido')
   }
@@ -61,6 +72,10 @@ export function buildOrder({ orderNumber, buyer, delivery, items, totals, create
   }
   if (!delivery?.province || !delivery?.canton || !delivery?.address) {
     throw new Error('Faltan datos de entrega')
+  }
+  // Ninguna compra se registra sin la aceptación de los términos.
+  if (termsAcceptance?.accepted !== true || !termsAcceptance?.version) {
+    throw new Error('El cliente no aceptó los términos y condiciones')
   }
 
   const orderItems = buildOrderItems(items)
@@ -74,9 +89,11 @@ export function buildOrder({ orderNumber, buyer, delivery, items, totals, create
     throw new Error('Los montos de la orden no cuadran')
   }
 
+  const createdAtIso = createdAt.toISOString()
+
   return {
     orderNumber,
-    createdAt: createdAt.toISOString(),
+    createdAt: createdAtIso,
     buyer: {
       fullName: buyer.fullName.trim(),
       email: buyer.email.trim(),
@@ -87,6 +104,11 @@ export function buildOrder({ orderNumber, buyer, delivery, items, totals, create
       canton: delivery.canton,
       address: delivery.address.trim(),
       extraInfo: (delivery.extraInfo ?? '').trim(),
+    },
+    termsAcceptance: {
+      accepted: true,
+      version: termsAcceptance.version,
+      acceptedAt: createdAtIso,
     },
     items: orderItems,
     currency: ORDER_CURRENCY,
