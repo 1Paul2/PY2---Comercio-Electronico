@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
+import { POLICY_PAGES } from '../features/policies/policyPages'
 import '../styles/Footer.css'
 
 /**
  * Nombre: Footer
  * Descripción: Renderiza el pie de página del sitio con la marca, navegación,
- * categorías y datos de contacto.
+ * categorías, enlaces de ayuda y políticas, y datos de contacto.
  * Entradas: No recibe parámetros.
  * Salidas: JSX con el footer visible en la aplicación.
  * Excepciones: No hay.
@@ -37,6 +38,15 @@ function Footer() {
             <li><Link to="/productos?categoria=Bulldozer">Bulldozer</Link></li>
             <li><Link to="/productos?categoria=Cargador%20de%20Ruedas">Cargador de Ruedas</Link></li>
             <li><Link to="/productos?categoria=Mezcladora%20de%20Concreto">Mezcladora de Concreto</Link></li>
+          </ul>
+        </div>
+
+        <div className="site-footer__col">
+          <h3 className="site-footer__title">Ayuda y políticas</h3>
+          <ul className="site-footer__links">
+            {POLICY_PAGES.map((page) => (
+              <li key={page.path}><Link to={page.path}>{page.label}</Link></li>
+            ))}
           </ul>
         </div>
 
