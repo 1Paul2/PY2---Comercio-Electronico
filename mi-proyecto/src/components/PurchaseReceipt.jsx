@@ -38,7 +38,7 @@ function formatDateTime(isoDate) {
  *                3. Bloques "Cliente" y "Enviar a".
  *                4. Detalle de productos con cantidad, precio unitario y total.
  *                5. Totales alineados a la derecha (subtotal, IVA, envío).
- *                6. Pie con notas y contacto.
+ *                6. Pie con notas, contacto y la aceptación de los términos.
  *              En pantalla está oculto; solo aparece al imprimir (o guardar
  *              como PDF) desde la página de confirmación. Usa colores fijos
  *              claros para que el papel se vea igual con tema claro u oscuro.
@@ -170,6 +170,13 @@ function PurchaseReceipt({ order }) {
           Entrega estimada: 1 a 3 días hábiles. Para consultas sobre este pedido escribe a{' '}
           {STORE.email} indicando el número de orden {order.orderNumber}.
         </p>
+        {/* Las órdenes anteriores al registro de la aceptación no lo traen. */}
+        {order.termsAcceptance?.accepted && (
+          <p>
+            Términos y condiciones de compra aceptados por el cliente el{' '}
+            {formatDateTime(order.termsAcceptance.acceptedAt)}, versión {order.termsAcceptance.version}.
+          </p>
+        )}
         <p>
           Este comprobante respalda el pago de la orden y no sustituye a la factura electrónica.
           Transacción procesada en ambiente Sandbox.

@@ -9,6 +9,11 @@ import Confirmacion from './pages/confirmacion'
 import Carrito from './pages/Carrito'
 import Checkout from './pages/Checkout'
 import NotFound from './pages/NotFound'
+import Terminos from './pages/Terminos'
+import Privacidad from './pages/Privacidad'
+import Devoluciones from './pages/Devoluciones'
+import Envios from './pages/Envios'
+import PreguntasFrecuentes from './pages/PreguntasFrecuentes'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -40,6 +45,14 @@ function App() {
 
           {/* Ruta de confirmación*/}
           <Route path="/confirmacion" element={<Confirmacion />} />
+
+          {/* Páginas informativas: políticas de la tienda y preguntas
+              frecuentes. Sus enlaces están en el footer (policyPages.js). */}
+          <Route path="/terminos" element={<Terminos />} />
+          <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="/devoluciones" element={<Devoluciones />} />
+          <Route path="/envios" element={<Envios />} />
+          <Route path="/preguntas-frecuentes" element={<PreguntasFrecuentes />} />
 
           {/* Ruta comodín: cualquier URL no declarada cae aquí en vez de
               renderizar una página en blanco. Debe ir de última. */}
