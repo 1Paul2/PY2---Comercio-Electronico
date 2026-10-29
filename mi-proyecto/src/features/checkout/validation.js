@@ -175,3 +175,55 @@ export function validateDeliveryForm(values) {
   if (extraError) errors.extraInfo = extraError
   return errors
 }
+
+/* ============================================================
+   Pago con tarjeta (simulado: no se envía a ningún banco)
+   ============================================================ */
+
+/**
+ * Nombre: onlyDigits
+ * Descripción: Quita todo lo que no sea número (espacios, guiones, barras).
+ */
+function onlyDigits(value) {
+  return typeof value === 'string' ? value.replace(/\D/g, '') : ''
+}
+
+/**
+ * Nombre: detectCardBrand
+ * Descripción: Identifica la marca de la tarjeta por sus primeros dígitos.
+ * Entradas: value: número de tarjeta (puede traer espacios).
+ * Salidas: 'Visa' | 'Mastercard' | 'American Express' | null.
+ * Excepciones: No lanza.
+ */
+export function detectCardBrand(value) {
+  const digits = onlyDigits(value)
+  if (/^4/.test(digits)) return 'Visa'
+  if (/^(5[1-5]|2(2[2-9]|[3-6]\d|7[01]|720))/.test(digits)) return 'Mastercard'
+  if (/^3[47]/.test(digits)) return 'American Express'
+  return null
+}
+
+/**
+ * Nombre: formatCardNumber
+ * Descripción: Agrupa el número de la tarjeta mientras se escribe
+ *              (4-4-4-4, o 4-6-5 para American Express).
+ * Entradas: value: texto escrito por el usuario.
+ * Salidas: string formateado, con un máximo de 19 dígitos.
+ * Excepciones: No lanza.
+ */
+export function formatCardNumber(value) {
+  const digits = onlyDigits(value).slice(0, 19)
+  if (detectCardBrand(digits) === 'American Express') {
+    return [digits.slice(0, 4), digits.slice(4, 10), digits.slice(10, 15)].filter(Boolean).join(' ')
+  }
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ')
+}
+
+/**
+ * Nombre: formatCardExpiry
+ * Descripción: Escribe la fecha de vencimiento como MM/AA mientras se teclea.
+ */
+export function formatCardExpiry(value) {
+  const digits = onlyDigits(value).slice(0, 4)
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits
+}
