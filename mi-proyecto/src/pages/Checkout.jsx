@@ -5,8 +5,12 @@ import { formatCRC } from '../features/catalog/format'
 import { PROVINCES, CANTONS_BY_PROVINCE } from '../features/checkout/costaRicaLocations'
 import {
   buildFullName,
+  detectCardBrand,
+  formatCardExpiry,
+  formatCardNumber,
   validateBuyerForm,
   validateDeliveryForm,
+  validatePaymentForm,
 } from '../features/checkout/validation'
 import { useCheckoutPersistence } from '../features/checkout/useCheckoutPersistence'
 import { resolveScenario, setScenario as persistScenario } from '../features/payment/scenarioSelector'
@@ -439,6 +443,108 @@ function DeliveryForm({ values, errors, touched, onChange, onBlur }) {
 }
 
 /* ============================================================
+   Formulario de pago (simulado)
+   ============================================================ */
+
+/**
+ * Nombre: PaymentForm
+ * Descripción: Datos de la tarjeta para el pago Sandbox. Es una simulación:
+ *              los datos no salen del navegador, no se guardan en el
+ *              borrador ni en la orden (solo marca y últimos 4 dígitos).
+ */
+function PaymentForm({ values, errors, touched, onChange, onBlur }) {
+  const brand = detectCardBrand(values.cardNumber)
+  const isAmex = brand === 'American Express'
+
+  return (
+    <>
+      <p className="checkout-payment__notice">
+        <IconLock size={14} />
+        <span>
+          Pago simulado (Sandbox): no se realiza ningún cargo real. Puedes usar la tarjeta de
+          prueba <strong>4242 4242 4242 4242</strong> con cualquier fecha futura y CVV 123.
+        </span>
+      </p>
+
+      <div className="checkout-form">
+        <Field id="cardName" label="Nombre del titular" error={touched.cardName && errors.cardName} required>
+          <input
+            id="cardName"
+            name="cardName"
+            type="text"
+            autoComplete="cc-name"
+            maxLength={60}
+            value={values.cardName}
+            onChange={(e) => onChange('cardName', e.target.value)}
+            onBlur={() => onBlur('cardName')}
+            aria-invalid={Boolean(touched.cardName && errors.cardName)}
+            aria-describedby={touched.cardName && errors.cardName ? 'cardName-error' : undefined}
+            placeholder="Como aparece en la tarjeta"
+            className="checkout-field__input"
+          />
+        </Field>
+
+        <Field id="cardNumber" label="Número de tarjeta" error={touched.cardNumber && errors.cardNumber} required>
+          <div className="checkout-payment__number">
+            <input
+              id="cardNumber"
+              name="cardNumber"
+              type="text"
+              inputMode="numeric"
+              autoComplete="cc-number"
+              value={values.cardNumber}
+              onChange={(e) => onChange('cardNumber', formatCardNumber(e.target.value))}
+              onBlur={() => onBlur('cardNumber')}
+              aria-invalid={Boolean(touched.cardNumber && errors.cardNumber)}
+              aria-describedby={touched.cardNumber && errors.cardNumber ? 'cardNumber-error' : undefined}
+              placeholder="0000 0000 0000 0000"
+              className="checkout-field__input"
+            />
+            {brand && <span className="checkout-payment__brand">{brand}</span>}
+          </div>
+        </Field>
+
+        <Field id="cardExpiry" label="Vencimiento (MM/AA)" error={touched.cardExpiry && errors.cardExpiry} required>
+          <input
+            id="cardExpiry"
+            name="cardExpiry"
+            type="text"
+            inputMode="numeric"
+            autoComplete="cc-exp"
+            maxLength={5}
+            value={values.cardExpiry}
+            onChange={(e) => onChange('cardExpiry', formatCardExpiry(e.target.value))}
+            onBlur={() => onBlur('cardExpiry')}
+            aria-invalid={Boolean(touched.cardExpiry && errors.cardExpiry)}
+            aria-describedby={touched.cardExpiry && errors.cardExpiry ? 'cardExpiry-error' : undefined}
+            placeholder="MM/AA"
+            className="checkout-field__input"
+          />
+        </Field>
+
+        <Field id="cardCvv" label="Código de seguridad (CVV)" error={touched.cardCvv && errors.cardCvv} required>
+          <input
+            id="cardCvv"
+            name="cardCvv"
+            type="password"
+            inputMode="numeric"
+            autoComplete="cc-csc"
+            maxLength={isAmex ? 4 : 3}
+            value={values.cardCvv}
+            onChange={(e) => onChange('cardCvv', e.target.value.replace(/\D/g, ''))}
+            onBlur={() => onBlur('cardCvv')}
+            aria-invalid={Boolean(touched.cardCvv && errors.cardCvv)}
+            aria-describedby={touched.cardCvv && errors.cardCvv ? 'cardCvv-error' : undefined}
+            placeholder={isAmex ? '4 dígitos' : '3 dígitos'}
+            className="checkout-field__input"
+          />
+        </Field>
+      </div>
+    </>
+  )
+}
+
+/* ============================================================
    Revisión final
    ============================================================ */
 
@@ -723,8 +829,13 @@ function CheckoutSummaryPanel({
 
 const INITIAL_BUYER = { firstName: '', lastName: '', email: '', phone: '' }
 const INITIAL_DELIVERY = { province: '', canton: '', address: '', extraInfo: '' }
+const INITIAL_PAYMENT = { cardName: '', cardNumber: '', cardExpiry: '', cardCvv: '' }
 // Orden visual de los campos; se usa para enfocar el primer error.
-const FIELD_ORDER = ['firstName', 'lastName', 'email', 'phone', 'province', 'canton', 'address', 'extraInfo']
+const FIELD_ORDER = [
+  'firstName', 'lastName', 'email', 'phone',
+  'province', 'canton', 'address', 'extraInfo',
+  'cardName', 'cardNumber', 'cardExpiry', 'cardCvv',
+]
 const TERMS_REQUIRED_MESSAGE = 'Debes aceptar los términos y condiciones para confirmar la compra.'
 
 function Checkout() {
@@ -757,6 +868,9 @@ function Checkout() {
   const [delivery, setDelivery] = useState(deliveryInitial)
   const [buyerTouched, setBuyerTouched] = useState({})
   const [deliveryTouched, setDeliveryTouched] = useState({})
+  // Los datos de la tarjeta viven solo en memoria: no van al borrador.
+  const [payment, setPayment] = useState(INITIAL_PAYMENT)
+  const [paymentTouched, setPaymentTouched] = useState({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [processingStage, setProcessingStage] = useState(null)
@@ -769,12 +883,15 @@ function Checkout() {
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
+  const paymentErrors = useMemo(() => validatePaymentForm(payment), [payment])
 
   const buyerIsValid = Object.keys(buyerErrors).length === 0
   const deliveryIsValid = Object.keys(deliveryErrors).length === 0
-  const canConfirm = buyerIsValid && deliveryIsValid && !processing
+  const paymentIsValid = Object.keys(paymentErrors).length === 0
+  const canConfirm = buyerIsValid && deliveryIsValid && paymentIsValid && !processing
 
-  const missingCount = Object.keys(buyerErrors).length + Object.keys(deliveryErrors).length
+  const missingCount =
+    Object.keys(buyerErrors).length + Object.keys(deliveryErrors).length + Object.keys(paymentErrors).length
   // El aviso aparece después del primer intento de confirmar sin aceptar.
   const termsError = submitAttempted && !termsAccepted ? TERMS_REQUIRED_MESSAGE : null
 
@@ -802,6 +919,14 @@ function Checkout() {
     })
   }
 
+  function handlePaymentChange(field, value) {
+    setPayment((prev) => ({ ...prev, [field]: value }))
+  }
+
+  function handlePaymentBlur(field) {
+    setPaymentTouched((prev) => ({ ...prev, [field]: true }))
+  }
+
   function handleBuyerBlur(field) {
     setBuyerTouched((prev) => ({ ...prev, [field]: true }))
   }
@@ -816,7 +941,9 @@ function Checkout() {
    *              que aparecen en pantalla) para que sepa qué corregir.
    */
   function focusFirstInvalidField() {
-    const firstInvalid = FIELD_ORDER.find((field) => buyerErrors[field] || deliveryErrors[field])
+    const firstInvalid = FIELD_ORDER.find(
+      (field) => buyerErrors[field] || deliveryErrors[field] || paymentErrors[field]
+    )
     const element = firstInvalid ? document.getElementById(firstInvalid) : null
     if (element) {
       element.focus({ preventScroll: true })
@@ -855,9 +982,10 @@ function Checkout() {
     setSubmitAttempted(true)
     setSubmitError(null)
 
-    if (!buyerIsValid || !deliveryIsValid) {
+    if (!buyerIsValid || !deliveryIsValid || !paymentIsValid) {
       setBuyerTouched({ firstName: true, lastName: true, email: true, phone: true })
       setDeliveryTouched({ province: true, canton: true, address: true, extraInfo: true })
+      setPaymentTouched({ cardName: true, cardNumber: true, cardExpiry: true, cardCvv: true })
       focusFirstInvalidField()
       return
     }
@@ -1026,6 +1154,20 @@ function Checkout() {
 
           <CheckoutSection
             number={3}
+            title="Método de pago"
+            description="Tarjeta de crédito o débito."
+          >
+            <PaymentForm
+              values={payment}
+              errors={paymentErrors}
+              touched={paymentTouched}
+              onChange={handlePaymentChange}
+              onBlur={handlePaymentBlur}
+            />
+          </CheckoutSection>
+
+          <CheckoutSection
+            number={4}
             title="Revisión final"
             description="Revisa que todo esté correcto antes de confirmar el pago."
           >
