@@ -8,6 +8,7 @@ import {
   detectCardBrand,
   formatCardExpiry,
   formatCardNumber,
+  maskCard,
   validateBuyerForm,
   validateDeliveryForm,
   validatePaymentForm,
@@ -610,7 +611,8 @@ function ReviewItems() {
   )
 }
 
-function ReviewBlock({ buyer, delivery, buyerIsValid, deliveryIsValid }) {
+function ReviewBlock({ buyer, delivery, payment, buyerIsValid, deliveryIsValid, paymentIsValid }) {
+  const card = paymentIsValid ? maskCard(payment.cardNumber) : null
   return (
     <div className="checkout-review">
       <ReviewItems />
@@ -680,6 +682,33 @@ function ReviewBlock({ buyer, delivery, buyerIsValid, deliveryIsValid }) {
               <dd>{delivery.extraInfo}</dd>
             </div>
           )}
+        </dl>
+      </div>
+
+      <div className="checkout-review__group">
+        <h3 className="checkout-review__group-title">
+          <span className="checkout-review__icon" aria-hidden="true">
+            <IconLock size={12} strokeWidth={2.5} />
+          </span>
+          Pago
+          {paymentIsValid && (
+            <span
+              className="confirmation-badge confirmation-badge--success"
+              style={{ marginLeft: 'auto', fontSize: '0.72rem', padding: '0.1rem 0.5rem' }}
+            >
+              Completado
+            </span>
+          )}
+        </h3>
+        <dl className="checkout-review__list">
+          <div className="checkout-review__row">
+            <dt>Tarjeta</dt>
+            <dd>{card ? `${card.brand} •••• ${card.last4}` : '—'}</dd>
+          </div>
+          <div className="checkout-review__row">
+            <dt>Titular</dt>
+            <dd>{payment.cardName.trim() || '—'}</dd>
+          </div>
         </dl>
       </div>
     </div>
@@ -1174,8 +1203,10 @@ function Checkout() {
             <ReviewBlock
               buyer={buyer}
               delivery={delivery}
+              payment={payment}
               buyerIsValid={buyerIsValid}
               deliveryIsValid={deliveryIsValid}
+              paymentIsValid={paymentIsValid}
             />
           </CheckoutSection>
         </fieldset>
