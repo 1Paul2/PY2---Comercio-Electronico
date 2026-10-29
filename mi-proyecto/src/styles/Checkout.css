@@ -897,6 +897,20 @@
   margin: 0;
 }
 
+/* Celular y tablet: el resumen va debajo del formulario a todo el ancho, así
+   que los textos auxiliares se alinean a la izquierda como el resto. */
+@media (max-width: 768px) {
+  .checkout-summary__legal,
+  .checkout-summary__notice {
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .checkout-summary__trust {
+    justify-content: flex-start;
+  }
+}
+
 /* ============================================================
    Ampliaciones (min-width) — mobile-first
    ============================================================ */
