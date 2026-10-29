@@ -1052,6 +1052,8 @@ function Checkout() {
         totals: { subtotal, iva, shippingCost, total },
         // Queda registrado que el cliente aceptó los términos y cuál versión.
         termsAcceptance: { accepted: termsAccepted, version: TERMS_VERSION },
+        // Solo marca y últimos 4 dígitos; el número completo y el CVV no se guardan.
+        paymentMethod: maskCard(payment.cardNumber),
       })
     } catch {
       finishWithError('Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.')
