@@ -16,6 +16,9 @@
      el último botón de la página. */
   padding: 1rem 1rem 6rem;
   background-color: var(--bg);
+  /* #root centra el texto; en el checkout y la confirmación todo va a la
+     izquierda para que el resumen de la compra se lea bien en celular. */
+  text-align: left;
 }
 
 .checkout-page--empty {
