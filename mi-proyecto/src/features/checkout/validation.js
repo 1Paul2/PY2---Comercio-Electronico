@@ -325,3 +325,13 @@ export function validatePaymentForm(values) {
   if (cvvError) errors.cardCvv = cvvError
   return errors
 }
+
+/**
+ * Nombre: maskCard
+ * Descripción: Resumen seguro de la tarjeta para mostrar y guardar en la
+ *              orden: solo la marca y los últimos 4 dígitos.
+ * Salidas: { brand, last4 }.
+ */
+export function maskCard(cardNumber) {
+  return { brand: detectCardBrand(cardNumber), last4: onlyDigits(cardNumber).slice(-4) }
+}
