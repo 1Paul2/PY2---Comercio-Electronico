@@ -482,6 +482,9 @@
   border-radius: 8px;
   padding: 0.9rem 1rem;
   background-color: var(--code-bg);
+  /* La tabla de productos mide el ancho de esta caja (no el de la pantalla):
+     en tablet la pantalla es ancha pero la columna del formulario no. */
+  container: review-group / inline-size;
 }
 
 .checkout-review__group-title {
@@ -593,7 +596,9 @@
   margin-top: 0.75rem;
 }
 
-@media (min-width: 481px) {
+/* La tabla solo se muestra con columnas cuando la caja tiene espacio para
+   las cuatro; si no, se queda como lista (igual que en celular). */
+@container review-group (min-width: 560px) {
   .checkout-review__table {
     display: table;
   }
