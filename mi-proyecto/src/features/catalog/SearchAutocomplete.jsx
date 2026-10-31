@@ -4,7 +4,15 @@ import { autocomplete } from '@algolia/autocomplete-js'
 import '@algolia/autocomplete-theme-classic'
 import { recentSearchesPlugin } from './recentSearchesPlugin'
 import { createProductSuggestionsSource } from './productSuggestionsSource'
+import { EVENT_TYPES, trackEvent } from '../analytics/events'
 import '../../styles/SearchAutocomplete.css'
+
+// Mientras se escribe en el catálogo, la búsqueda se registra cuando la
+// persona deja de teclear este tiempo (no una vez por cada letra).
+const TYPING_PAUSE_MS = 1000
+// La misma búsqueda repetida en este lapso se cuenta una sola vez (por
+// ejemplo, la pausa al escribir seguida de Enter con el mismo texto).
+const SAME_QUERY_WINDOW_MS = 5000
 
 /**
  * Nombre: SearchAutocomplete
@@ -21,6 +29,25 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
 
   useEffect(() => {
     if (!containerRef.current) return
+
+    let typingTimer = null
+    let lastLogged = { query: '', at: 0 }
+
+    /**
+     * Nombre: logSearch
+     * Descripción: Registra el evento "search" con el texto buscado y cómo
+     *              se hizo (enter, sugerencia o escritura en el catálogo).
+     */
+    const logSearch = (query, method) => {
+      window.clearTimeout(typingTimer)
+      const trimmed = query.trim()
+      if (trimmed.length < 2) return
+      const now = Date.now()
+      const sameQuery = trimmed.toLowerCase() === lastLogged.query
+      if (sameQuery && now - lastLogged.at < SAME_QUERY_WINDOW_MS) return
+      lastLogged = { query: trimmed.toLowerCase(), at: now }
+      trackEvent(EVENT_TYPES.SEARCH, { query: trimmed, method })
+    }
 
     const handleQuery = (query) => {
       const trimmed = query.trim()
@@ -45,9 +72,17 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
       detachedMediaQuery: 'none',
       plugins: [recentSearchesPlugin],
       getSources() {
-        return [createProductSuggestionsSource({ onSelect: handleQuery })]
+        return [
+          createProductSuggestionsSource({
+            onSelect: (query) => {
+              logSearch(query, 'suggestion')
+              handleQuery(query)
+            },
+          }),
+        ]
       },
       onSubmit({ state }) {
+        logSearch(state.query, 'enter')
         handleQuery(state.query)
       },
       onStateChange({ state, prevState }) {
@@ -59,11 +94,16 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
         if (redirectSearchTo) return
         if (state.query !== prevState.query) {
           handleQuery(state.query)
+          window.clearTimeout(typingTimer)
+          typingTimer = window.setTimeout(() => logSearch(state.query, 'typing'), TYPING_PAUSE_MS)
         }
       },
     })
 
-    return () => search.destroy()
+    return () => {
+      window.clearTimeout(typingTimer)
+      search.destroy()
+    }
   }, [redirectSearchTo, onQuery, navigate])
 
   return <div ref={containerRef} className="search-header__autocomplete" />

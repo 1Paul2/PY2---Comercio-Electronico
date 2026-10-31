@@ -25,6 +25,7 @@ import { saveOrder } from '../features/orders/orderStorage'
 import { applyPaymentResult } from '../features/orders/applyPaymentResult'
 import { PAYMENT_RESULT } from '../features/payment/paymentContract'
 import DevScenarioPanel from '../components/DevScenarioPanel'
+import { EVENT_TYPES, trackEvent } from '../features/analytics/events'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -910,6 +911,19 @@ function Checkout() {
   // Si el usuario intenta recargar o cerrar mientras se paga, se le advierte.
   useWarnBeforeLeave(processing)
 
+  // Registra "begin_checkout" una sola vez al entrar con productos. La ref
+  // evita repetirlo cuando cambian los montos o React vuelve a montar.
+  const checkoutLoggedRef = useRef(false)
+  useEffect(() => {
+    if (checkoutLoggedRef.current || items.length === 0) return
+    checkoutLoggedRef.current = true
+    trackEvent(EVENT_TYPES.BEGIN_CHECKOUT, {
+      itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
+      total,
+      productIds: items.map((item) => item.id),
+    })
+  }, [items, total])
+
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
   const paymentErrors = useMemo(() => validatePaymentForm(payment), [payment])
@@ -1080,6 +1094,19 @@ function Checkout() {
     // descarta el borrador; los no seleccionados siguen en el carrito. Si el
     // pago fue rechazado o falló, el usuario conserva todo para reintentar.
     if (paymentResponse.result === PAYMENT_RESULT.APPROVED) {
+      // Solo una compra aprobada cuenta como "purchase" (las rechazadas o
+      // con error no son compras completadas).
+      trackEvent(EVENT_TYPES.PURCHASE, {
+        orderNumber: order.orderNumber,
+        total: order.total,
+        itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+        items: order.items.map((item) => ({
+          productId: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.unitPrice,
+        })),
+      })
       clearDraft()
       removeItems(order.items.map((item) => item.id))
     }

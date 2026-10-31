@@ -4,6 +4,7 @@ import { searchClient } from './searchClient'
 import { formatCRCParts, formatPercent } from './format'
 import RelatedProducts from './RelatedProducts'
 import { useCart } from '../../context/useCart'
+import { EVENT_TYPES, trackEvent } from '../analytics/events'
 import '../../styles/ProductDetail.css'
 
 // Nombre del índice de productos en Algolia.
@@ -136,6 +137,19 @@ function ProductDetail({ id }) {
 
   // Cantidad seleccionada por el usuario para cotizar o comprar.
   const [quantity, setQuantity] = useState(1)
+
+  // Registra la visualización una vez por producto, cuando ya se cargó
+  // (no se cuentan los productos que no existen ni los errores de carga).
+  useEffect(() => {
+    if (status !== 'found' || !product) return
+    trackEvent(EVENT_TYPES.PRODUCT_VIEW, {
+      productId: product.objectID,
+      name: product.title,
+      brand: product.brand ?? null,
+      category: product.category_facet ?? null,
+      price: product.pricing?.b2c?.price_crc ?? null,
+    })
+  }, [status, product])
 
   if (status === 'loading') {
     return <p className="product-detail__message">Cargando producto...</p>

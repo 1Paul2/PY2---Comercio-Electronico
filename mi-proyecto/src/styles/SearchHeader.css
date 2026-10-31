@@ -155,6 +155,32 @@
   gap: 12px;
 }
 
+/* Acceso al inicio de sesión / usuario activo (laboratorio 5). */
+.session-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  max-width: 180px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: #08060d;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.session-link:hover,
+.session-link:focus-visible {
+  background: rgba(8, 6, 13, 0.08);
+}
+
+.session-link__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Acceso al carrito con contador de unidades. Es un <button> que abre el
    mini carrito, salvo en /carrito donde es un <Link>; por eso se resetean
    los estilos nativos del botón. */

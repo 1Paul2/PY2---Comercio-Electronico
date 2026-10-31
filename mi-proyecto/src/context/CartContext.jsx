@@ -1,5 +1,6 @@
-import { useEffect, useReducer, useMemo } from 'react'
+import { useEffect, useReducer, useMemo, useRef } from 'react'
 import { CartContext } from './useCart'
+import { EVENT_TYPES, trackEvent } from '../features/analytics/events'
 
 /**
  * Nombre: CartContext
@@ -35,6 +36,9 @@ const initialState = {
   lastMessage: null,
   lastMessageType: null,
   lastAddId: 0,
+  // Último agregado exitoso (qué producto y cuántas unidades entraron de
+  // verdad); se usa para registrar el evento "add_to_cart".
+  lastAdded: null,
 }
 
 /**
@@ -131,6 +135,7 @@ function cartReducer(state, action) {
         return {
           ...state,
           lastAddId: state.lastAddId + 1,
+          lastAdded: { productId: id, name, price, quantity: addedQuantity },
           items: state.items.map((item) =>
             item.id === id
               ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity, weight_kg: itemWeight, selected: true }
@@ -159,6 +164,7 @@ function cartReducer(state, action) {
       return {
         ...state,
         lastAddId: state.lastAddId + 1,
+        lastAdded: { productId: id, name, price, quantity: addedQuantity },
         items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit, weight_kg: itemWeight, selected: true }],
         lastMessage:
           addedQuantity < requestedQuantity
@@ -289,6 +295,16 @@ export function CartProvider({ children }) {
       // sigue funcionando en memoria. Este comentario evita el error no-empty.
     }
   }, [state.items])
+
+  // Registra "add_to_cart" una vez por cada agregado exitoso. Se hace aquí
+  // (y no en cada botón) porque se agrega desde varias pantallas; el reducer
+  // sabe cuántas unidades entraron de verdad según el stock.
+  const loggedAddIdRef = useRef(state.lastAddId)
+  useEffect(() => {
+    if (state.lastAddId === loggedAddIdRef.current || !state.lastAdded) return
+    loggedAddIdRef.current = state.lastAddId
+    trackEvent(EVENT_TYPES.ADD_TO_CART, state.lastAdded)
+  }, [state.lastAddId, state.lastAdded])
 
   useEffect(() => {
     if (!state.lastMessage) return undefined

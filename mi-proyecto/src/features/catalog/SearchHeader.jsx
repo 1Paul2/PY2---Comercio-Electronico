@@ -6,6 +6,7 @@ import LogoIcon from '../../components/LogoIcon'
 import CartDrawer from '../../components/CartDrawer'
 import NoticeToast from '../../components/NoticeToast'
 import { useCart } from '../../context/useCart'
+import { useSession } from '../../context/useSession'
 import SearchAutocomplete from './SearchAutocomplete'
 import '../../styles/SearchHeader.css'
 
@@ -62,6 +63,7 @@ function SearchHeader({ redirectSearchTo }) {
   const navigate = useNavigate()
   const { refine } = useSearchBox()
   const { itemCount, lastAddId } = useCart()
+  const { session } = useSession()
   const { pathname } = useLocation()
   const cartDrawerRef = useRef(null)
   const [lastAddIdOnMount] = useState(lastAddId)
@@ -117,6 +119,17 @@ function SearchHeader({ redirectSearchTo }) {
       </div>
 
       <div className="search-header__right">
+        {/* Con sesión muestra el nombre (lleva a "Mi sesión"); sin sesión
+            invita a iniciarla y luego regresa a esta misma página. */}
+        <Link
+          to="/login"
+          state={{ from: pathname }}
+          className="session-link"
+          aria-label={session ? `Sesión de ${session.name}` : 'Iniciar sesión'}
+        >
+          <span aria-hidden="true">👤</span>
+          <span className="session-link__name">{session ? session.name.split(' ')[0] : 'Iniciar sesión'}</span>
+        </Link>
         {isCartPage ? (
           <Link
             to="/carrito"
