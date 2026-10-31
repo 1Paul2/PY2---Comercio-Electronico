@@ -25,6 +25,7 @@ import { saveOrder } from '../features/orders/orderStorage'
 import { applyPaymentResult } from '../features/orders/applyPaymentResult'
 import { PAYMENT_RESULT } from '../features/payment/paymentContract'
 import DevScenarioPanel from '../components/DevScenarioPanel'
+import { EVENT_TYPES, trackEvent } from '../features/analytics/events'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -909,6 +910,19 @@ function Checkout() {
 
   // Si el usuario intenta recargar o cerrar mientras se paga, se le advierte.
   useWarnBeforeLeave(processing)
+
+  // Registra "begin_checkout" una sola vez al entrar con productos. La ref
+  // evita repetirlo cuando cambian los montos o React vuelve a montar.
+  const checkoutLoggedRef = useRef(false)
+  useEffect(() => {
+    if (checkoutLoggedRef.current || items.length === 0) return
+    checkoutLoggedRef.current = true
+    trackEvent(EVENT_TYPES.BEGIN_CHECKOUT, {
+      itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
+      total,
+      productIds: items.map((item) => item.id),
+    })
+  }, [items, total])
 
   const buyerErrors = useMemo(() => validateBuyerForm(buyer), [buyer])
   const deliveryErrors = useMemo(() => validateDeliveryForm(delivery), [delivery])
