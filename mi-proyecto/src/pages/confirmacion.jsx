@@ -622,7 +622,11 @@ function Confirmacion() {
                 </div>
                 <div className="confirmation-details__row">
                   <dt>Método de pago</dt>
-                  <dd>Tarjeta de crédito / débito (Pasarela Sandbox)</dd>
+                  <dd>
+                    {order.paymentMethod
+                      ? `${order.paymentMethod.brand} •••• ${order.paymentMethod.last4} (Pasarela Sandbox)`
+                      : 'Tarjeta de crédito / débito (Pasarela Sandbox)'}
+                  </dd>
                 </div>
                 {formattedUpdate && (
                   <div className="confirmation-details__row">

@@ -47,6 +47,8 @@ function buildOrderItems(cartItems) {
  *   - totals: { subtotal, iva, shippingCost, total } del carrito.
  *   - termsAcceptance: { accepted, version } con la aceptación de los
  *     términos y condiciones que el cliente marcó en el checkout.
+ *   - paymentMethod (opcional): { brand, last4 } de la tarjeta. Nunca se
+ *     guarda el número completo ni el código de seguridad.
  *   - createdAt (opcional): Date; por defecto la fecha actual. También es
  *     la fecha en que quedan aceptados los términos.
  * Salidas: objeto orden (ver forma arriba).
@@ -62,6 +64,7 @@ export function buildOrder({
   items,
   totals,
   termsAcceptance,
+  paymentMethod = null,
   createdAt = new Date(),
 }) {
   if (!isValidOrderNumber(orderNumber)) {
@@ -110,6 +113,10 @@ export function buildOrder({
       version: termsAcceptance.version,
       acceptedAt: createdAtIso,
     },
+    paymentMethod:
+      paymentMethod?.brand && /^\d{4}$/.test(paymentMethod.last4 ?? '')
+        ? { brand: paymentMethod.brand, last4: paymentMethod.last4 }
+        : null,
     items: orderItems,
     currency: ORDER_CURRENCY,
     subtotal,
