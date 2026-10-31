@@ -4,13 +4,16 @@ import { HashRouter } from 'react-router-dom'
 import App from './App.jsx'
 import './styles/global.css'
 import { CartProvider } from './context/CartContext.jsx'
+import { SessionProvider } from './context/SessionContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HashRouter>
-      <CartProvider>
-        <App />
-      </CartProvider>
+      <SessionProvider>
+        <CartProvider>
+          <App />
+        </CartProvider>
+      </SessionProvider>
     </HashRouter>
   </StrictMode>,
 )
