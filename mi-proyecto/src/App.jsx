@@ -14,6 +14,7 @@ import Privacidad from './pages/Privacidad'
 import Devoluciones from './pages/Devoluciones'
 import Envios from './pages/Envios'
 import PreguntasFrecuentes from './pages/PreguntasFrecuentes'
+import Login from './pages/Login'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -45,6 +46,10 @@ function App() {
 
           {/* Ruta de confirmación*/}
           <Route path="/confirmacion" element={<Confirmacion />} />
+
+          {/* Inicio de sesión simulado (laboratorio 5): identifica al usuario
+              activo para registrar sus eventos. */}
+          <Route path="/login" element={<Login />} />
 
           {/* Páginas informativas: políticas de la tienda y preguntas
               frecuentes. Sus enlaces están en el footer (policyPages.js). */}

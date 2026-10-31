@@ -1,0 +1,133 @@
+/* Login.css — Inicio de sesión simulado (laboratorio 5). */
+
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  padding: 2.5rem 1rem 4rem;
+  text-align: left;
+}
+
+.login-card {
+  width: min(440px, 100%);
+  padding: 1.75rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+.login-card h1 {
+  margin: 0.2rem 0 0.5rem;
+  font-size: 1.6rem;
+  color: var(--text-h);
+}
+
+.login-card__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.login-card__text {
+  margin: 0 0 1.4rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.login-card__text strong {
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.login-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.login-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.login-field input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.login-field--error input {
+  border-color: var(--danger);
+}
+
+.login-field__error {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--danger);
+}
+
+.login-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.login-card__button,
+.login-card__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1.3rem;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.login-card__button {
+  border: none;
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
+.login-card__button:hover,
+.login-card__button:focus-visible {
+  background: var(--brand-strong);
+}
+
+.login-card__submit {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.login-card__secondary {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+}
+
+.login-card__secondary:hover {
+  background: var(--code-bg);
+}
