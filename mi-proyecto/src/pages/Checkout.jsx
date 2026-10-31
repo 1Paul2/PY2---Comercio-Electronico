@@ -1094,6 +1094,19 @@ function Checkout() {
     // descarta el borrador; los no seleccionados siguen en el carrito. Si el
     // pago fue rechazado o falló, el usuario conserva todo para reintentar.
     if (paymentResponse.result === PAYMENT_RESULT.APPROVED) {
+      // Solo una compra aprobada cuenta como "purchase" (las rechazadas o
+      // con error no son compras completadas).
+      trackEvent(EVENT_TYPES.PURCHASE, {
+        orderNumber: order.orderNumber,
+        total: order.total,
+        itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+        items: order.items.map((item) => ({
+          productId: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.unitPrice,
+        })),
+      })
       clearDraft()
       removeItems(order.items.map((item) => item.id))
     }
