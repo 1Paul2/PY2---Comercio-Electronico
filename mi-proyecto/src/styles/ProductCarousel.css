@@ -1,0 +1,183 @@
+/* Carrusel horizontal de productos compartido: "Productos relacionados",
+   "Vistos recientemente", "Inspirado en tu historial" y las
+   recomendaciones del carrito. Sin auto-rotación: navegación manual con
+   flechas laterales + deslizamiento táctil/rueda. */
+
+.product-carousel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.product-carousel__header h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.1rem;
+}
+
+/* Explica por qué se muestran estos productos ("Porque viste…"). */
+.product-carousel__subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* Contenedor de la fila: sirve de referencia para ubicar las flechas
+   sobre los costados de las tarjetas. */
+.product-carousel__viewport {
+  position: relative;
+}
+
+/* Flechas laterales: barras verticales altas, semitransparentes para no
+   tapar los productos, que se resaltan cuando el mouse está sobre la fila
+   (o el foco del teclado). Ocupan casi todo el alto de las tarjetas. */
+.product-carousel__arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 40px;
+  height: 70%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 1.75rem;
+  line-height: 1;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  opacity: 0.45;
+  transform: translateY(-50%);
+  transition: opacity 0.2s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.product-carousel__arrow--prev {
+  left: 0.5rem;
+}
+
+.product-carousel__arrow--next {
+  right: 0.5rem;
+}
+
+.product-carousel__viewport:hover .product-carousel__arrow,
+.product-carousel__viewport:focus-within .product-carousel__arrow {
+  opacity: 0.9;
+}
+
+.product-carousel__viewport .product-carousel__arrow:hover,
+.product-carousel__arrow:focus-visible {
+  opacity: 1;
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+.product-carousel__arrow:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+/* Si todos los productos caben, no hay flechas. */
+.product-carousel__arrow[hidden] {
+  display: none;
+}
+
+/* La fila se desliza con flechas, rueda o dedo; la barra de
+   desplazamiento inferior se oculta. */
+.product-carousel__track {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 6px 2px 0.75rem;
+  margin: 0 -2px;
+  scrollbar-width: none;
+}
+
+.product-carousel__track::-webkit-scrollbar {
+  display: none;
+}
+
+.product-carousel__item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 220px;
+  scroll-snap-align: start;
+}
+
+/* Botón ✕ para quitar un producto del historial, sobre la esquina de la
+   tarjeta. Se resalta al pasar el mouse por la tarjeta o con el teclado. */
+.product-carousel__remove {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.product-carousel__item:hover .product-carousel__remove,
+.product-carousel__remove:focus-visible {
+  opacity: 1;
+}
+
+.product-carousel__remove:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.product-carousel__remove:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+/* Pantallas táctiles (sin mouse): no hay "pasar el mouse", así que las
+   flechas quedan siempre medio visibles y un poco más pequeñas. */
+@media (hover: none) {
+  .product-carousel__arrow {
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-carousel__item {
+    width: 168px;
+  }
+
+  .product-carousel__arrow {
+    width: 32px;
+    font-size: 1.4rem;
+  }
+
+  .product-carousel__arrow--prev {
+    left: 0.25rem;
+  }
+
+  .product-carousel__arrow--next {
+    right: 0.25rem;
+  }
+
+  .product-carousel__header h2 {
+    font-size: 1rem;
+  }
+}
