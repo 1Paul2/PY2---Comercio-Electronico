@@ -25,7 +25,7 @@ import { saveOrder } from '../features/orders/orderStorage'
 import { applyPaymentResult } from '../features/orders/applyPaymentResult'
 import { PAYMENT_RESULT } from '../features/payment/paymentContract'
 import DevScenarioPanel from '../components/DevScenarioPanel'
-import { EVENT_TYPES, trackEvent } from '../features/analytics/events'
+import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
 import '../styles/Checkout.css'
 
 /* ============================================================
