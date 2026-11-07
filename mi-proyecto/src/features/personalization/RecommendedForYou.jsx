@@ -48,7 +48,17 @@ function RecommendedForYou() {
           ))}
         </div>
       )}
-      {status === 'loading' && <p className="personal-note">Buscando recomendaciones…</p>}
+      {status === 'loading' && (
+        <div className="personal-skeleton" role="status" aria-label="Buscando recomendaciones">
+          {[0, 1, 2, 3].map((index) => (
+            <div className="personal-skeleton__card" key={index} aria-hidden="true">
+              <div className="personal-skeleton__image" />
+              <div className="personal-skeleton__line" />
+              <div className="personal-skeleton__line personal-skeleton__line--short" />
+            </div>
+          ))}
+        </div>
+      )}
       {status === 'ready' && recommendations.length === 0 && (
         <p className="personal-note">Ya viste todo lo que tenemos aquí. Prueba con otra pestaña.</p>
       )}

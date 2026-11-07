@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { clearHistory } from '../history/history'
 import { repeatSearch, usePersonalHistory } from './usePersonalHistory'
 import RecentSearches from './RecentSearches'
-import RecentlyViewed from './RecentlyViewed'
+import RecentlyViewedList from './RecentlyViewedList'
 import RecommendedForYou from './RecommendedForYou'
 import '../../styles/Personalization.css'
 
@@ -46,9 +46,10 @@ function ClearHistoryButton() {
 /**
  * Nombre: PersonalHome
  * Descripción: Sección personalizada del inicio (laboratorio 5, requerimiento C).
- *              Con sesión: saludo, búsquedas recientes, "Seguí donde lo
- *              dejaste" y "Inspirado en tu historial", todo calculado con el
- *              historial real del usuario. Sin sesión: invitación a iniciarla.
+ *              Con sesión: panel con saludo y conteos del historial,
+ *              búsquedas recientes, lista "Seguí donde lo dejaste" e
+ *              "Inspirado en tu historial", todo calculado con el historial
+ *              real del usuario. Sin sesión: invitación a iniciarla.
  * Entradas: No recibe parámetros.
  * Salidas: JSX con la sección.
  * Excepciones: No hay.
@@ -74,7 +75,15 @@ function PersonalHome() {
   }
 
   const firstName = session.name.split(' ')[0]
-  const hasActivity = history.products.length > 0 || history.searches.length > 0
+  const productCount = history.products.length
+  const searchCount = history.searches.length
+  const hasActivity = productCount > 0 || searchCount > 0
+  const summary = [
+    productCount > 0 && `Viste ${productCount} ${productCount === 1 ? 'producto' : 'productos'}`,
+    searchCount > 0 && `${searchCount} ${searchCount === 1 ? 'búsqueda reciente' : 'búsquedas recientes'}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   function handleSearch(query) {
     repeatSearch(query)
@@ -82,15 +91,20 @@ function PersonalHome() {
   }
 
   return (
-    <section className="personal-home" aria-labelledby="personal-home-title">
+    <section className="personal-home personal-panel" aria-labelledby="personal-home-title">
       <div className="personal-home__intro">
-        <div>
-          <h2 id="personal-home-title">Hola, {firstName}</h2>
-          <p>
-            {hasActivity
-              ? 'Esto es lo que preparamos según lo que viste y buscaste.'
-              : 'Todavía no tenemos actividad tuya. Explorá el catálogo y acá vas a ver tus productos recientes y recomendaciones.'}
-          </p>
+        <div className="personal-home__who">
+          <span className="personal-avatar" aria-hidden="true">
+            {firstName.charAt(0).toUpperCase()}
+          </span>
+          <div>
+            <h2 id="personal-home-title">Hola, {firstName}</h2>
+            <p>
+              {hasActivity
+                ? summary
+                : 'Todavía no tenemos actividad tuya. Explorá el catálogo y acá vas a ver tus productos recientes y recomendaciones.'}
+            </p>
+          </div>
         </div>
         {hasActivity ? (
           <ClearHistoryButton />
@@ -101,9 +115,12 @@ function PersonalHome() {
         )}
       </div>
 
-      <RecentSearches onSelect={handleSearch} />
-      <RecentlyViewed title="Seguí donde lo dejaste" subtitle="Los últimos productos que viste" />
-      <RecommendedForYou />
+      <RecentSearches onSelect={handleSearch} className="recent-searches--panel" />
+
+      <div className="personal-body">
+        <RecentlyViewedList />
+        <RecommendedForYou />
+      </div>
     </section>
   )
 }
