@@ -4,6 +4,8 @@ import { searchClient } from './searchClient'
 import { formatCRCParts, formatPercent } from './format'
 import RelatedProducts from './RelatedProducts'
 import { useCart } from '../../context/useCart'
+import { useSession } from '../../context/useSession'
+import { rememberProduct } from '../history/history'
 import { EVENT_TYPES, trackEvent } from '../analytics/events'
 import '../../styles/ProductDetail.css'
 
@@ -128,6 +130,11 @@ function ProductDetail({ id }) {
   // Estado del producto consultado: carga, éxito, error o no encontrado.
   const { status, product } = useProduct(id)
   const { addItem } = useCart()
+  const { session } = useSession()
+
+  useEffect(() => {
+    if (status === 'found' && product && session?.userId) rememberProduct(product)
+  }, [status, product, session?.userId])
 
   // Permite volver a la vista anterior desde el detalle.
   const navigate = useNavigate()

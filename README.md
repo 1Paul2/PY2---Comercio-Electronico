@@ -4,6 +4,62 @@ Catálogo, carrito y proceso de compra de maquinaria pesada y repuestos. Proyect
 
 Construido con React 19, Vite, React Router (HashRouter) y Algolia para la búsqueda instantánea.
 
+## Historial de navegación por usuario
+
+La aplicación conserva los productos vistos y las búsquedas recientes de cada
+usuario para recuperar su actividad al volver a ingresar.
+
+El historial se guarda en `localStorage` con la clave `ecom_history_<userId>`.
+El identificador proviene de `ecom_session` y es estable para el mismo correo.
+Sin sesión iniciada no se guarda historial. Cerrar sesión conserva los datos;
+otra cuenta utiliza una clave independiente. No se importa el historial global
+anterior porque no se puede identificar a su propietario.
+
+`mi-proyecto/src/features/history/history.js` expone `getHistory(userId?)`,
+`rememberProduct(product)` y `rememberSearch(query)`. La lectura sin argumento
+usa el usuario activo. Cada lista admite 10 entradas, con la más reciente
+primero. Volver a consultar un producto lo mueve al inicio; las búsquedas se
+comparan sin distinguir mayúsculas y normalizando espacios. Los fallos de
+almacenamiento no interrumpen la tienda.
+
+Ejemplo de estructura (ilustrativo; no se inserta como dato de prueba):
+
+```json
+{
+  "products": [{
+    "objectID": "producto-123",
+    "title": "Excavadora",
+    "image_url": "/imagen.jpg",
+    "brand": "Marca",
+    "category_facet": "Excavadoras",
+    "price_crc": 6200000,
+    "viewedAt": "2026-11-07T18:00:00.000Z"
+  }],
+  "searches": [{
+    "query": "excavadora",
+    "searchedAt": "2026-11-07T18:01:00.000Z"
+  }]
+}
+```
+
+Los productos se guardan cuando su detalle carga correctamente. Las búsquedas
+se guardan al enviarlas, elegir una sugerencia de producto o dejar de escribir
+durante un segundo en el catálogo. El autocompletado conserva además su caché
+de búsquedas enviadas, separada por usuario. Para consultar el historial completo
+desde otras secciones de la aplicación se utiliza `getHistory()`.
+
+### Comprobar el historial
+
+1. Iniciar sesión con A, buscar y abrir varios productos.
+2. En DevTools → Application → Local Storage, capturar `ecom_session` y
+   `ecom_history_<userId>` con acciones reales.
+3. Repetir una consulta y una visita: deben moverse al inicio sin duplicarse.
+4. Superar 10 entradas por lista: deben conservarse las últimas 10.
+5. Recargar y comprobar persistencia. Entrar con B y comprobar historial
+   independiente; regresar a A y comprobar que recupera sus datos.
+
+### Recursos del proyecto
+
 | Recurso | Enlace |
 |---|---|
 | Repositorio | https://github.com/1Paul2/PY2---Comercio-Electronico |
