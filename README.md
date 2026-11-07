@@ -58,6 +58,53 @@ desde otras secciones de la aplicación se utiliza `getHistory()`.
 5. Recargar y comprobar persistencia. Entrar con B y comprobar historial
    independiente; regresar a A y comprobar que recupera sus datos.
 
+## Personalización
+
+Con el historial de cada usuario la tienda muestra contenido hecho para esa
+persona. Todo se calcula con datos reales de su actividad (`getHistory()`):
+no hay productos fijos de relleno, y si un bloque no tiene datos no se muestra.
+
+| Elemento | Dónde | Datos que usa | Interacción |
+|---|---|---|---|
+| **Seguí donde lo dejaste** | Inicio | Productos vistos, del más reciente al más antiguo | ✕ en cada tarjeta para quitarlo; "Borrar historial" con confirmación |
+| **Inspirado en tu historial** | Inicio | Categorías más vistas y última búsqueda | Pestañas *Para ti*, una por categoría y una por la última búsqueda |
+| **Tus búsquedas recientes** | Inicio y catálogo (con el buscador vacío) | Búsquedas recientes | Tocar repite la búsqueda; ✕ la quita |
+| **Vistos recientemente** | Detalle de producto (sin el producto actual) y carrito vacío | Productos vistos | ✕ en cada tarjeta |
+| **Completa tu compra** | Carrito | Categorías de los productos del carrito | Agregar desde la tarjeta |
+
+Sin sesión, el inicio muestra una invitación a iniciarla, porque el historial
+solo se guarda para usuarios identificados.
+
+### Estrategia de recomendación
+
+Las reglas están en `mi-proyecto/src/features/personalization/recommendations.js`
+como funciones puras:
+
+1. Cada producto visto suma puntos a su categoría. Los recientes pesan más:
+   el último visto vale 10 puntos y el más antiguo 1 (`rankCategories`).
+2. Las 3 categorías con más puntos son los intereses del usuario. *Para ti*
+   las combina y cada una tiene su pestaña.
+3. La última búsqueda agrega una pestaña que busca ese texto en Algolia. Si el
+   usuario solo ha buscado, es la única recomendación.
+4. Nunca se recomiendan productos que el usuario ya vio, ni en el carrito los
+   que ya están en él.
+5. Cada bloque explica por qué aparece: *"Porque viste Excavadoras y Grúas"*,
+   *"Según tu búsqueda «caterpillar»"*, *"Porque tienes Excavadoras en tu carrito"*.
+
+El historial guarda una copia mínima de cada producto. Para mostrar la tarjeta
+con precio y stock actualizados, los productos se vuelven a pedir a Algolia
+por su `objectID` (`productQueries.js`). Los bloques se actualizan sin recargar:
+`history.js` emite el evento `ecom-history-updated` en cada cambio.
+
+### Comprobar la personalización
+
+1. Sin sesión, el inicio muestra la invitación. Iniciar sesión.
+2. Buscar dos términos y abrir productos de dos categorías distintas.
+3. Volver al inicio: aparecen las búsquedas, los productos vistos y las
+   recomendaciones con su motivo. Cambiar de pestaña y quitar un producto.
+4. Agregar un producto al carrito: aparece *Completa tu compra*.
+5. Entrar con otro correo: no hay datos de la cuenta anterior.
+
 ### Recursos del proyecto
 
 | Recurso | Enlace |
@@ -100,6 +147,7 @@ Otros comandos: `npm run lint`, `npm run build`, `npm run preview`, `npm run dep
 | `/carrito` | Carrito de compras |
 | `/checkout` | Proceso de compra |
 | `/confirmacion` | Resultado de la transacción |
+| `/login` | Inicio de sesión simulado |
 | `*` | Página 404 |
 
 ---
@@ -314,7 +362,11 @@ mi-proyecto/
     │   ├── catalog/         búsqueda, filtros, tarjeta, detalle
     │   ├── checkout/        validaciones, provincias/cantones, borrador
     │   ├── orders/          número, construcción, estados, persistencia
-    │   └── payment/         contrato, sandbox, cliente, mensajes
+    │   ├── payment/         contrato, sandbox, cliente, mensajes
+    │   ├── session/         sesión simulada del usuario
+    │   ├── activity/        registro de eventos (ecom_events)
+    │   ├── history/         historial por usuario
+    │   └── personalization/ recomendaciones y bloques personalizados
     ├── components/          piezas transversales (header, footer, toasts)
     ├── context/             carrito y tema
     └── styles/              un .css por componente + tokens en global.css
