@@ -17,22 +17,16 @@
   font-size: 1.1rem;
 }
 
-/* Explica por qué se muestran estos productos ("Porque viste…"). */
 .product-carousel__subtitle {
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
   color: var(--text);
 }
 
-/* Contenedor de la fila: sirve de referencia para ubicar las flechas
-   sobre los costados de las tarjetas. */
 .product-carousel__viewport {
   position: relative;
 }
 
-/* Flechas laterales: barras verticales altas, semitransparentes para no
-   tapar los productos, que se resaltan cuando el mouse está sobre la fila
-   (o el foco del teclado). Ocupan casi todo el alto de las tarjetas. */
 .product-carousel__arrow {
   position: absolute;
   top: 50%;
@@ -82,13 +76,10 @@
   outline-offset: 2px;
 }
 
-/* Si todos los productos caben, no hay flechas. */
 .product-carousel__arrow[hidden] {
   display: none;
 }
 
-/* La fila se desliza con flechas, rueda o dedo; la barra de
-   desplazamiento inferior se oculta. */
 .product-carousel__track {
   display: flex;
   gap: 1rem;
@@ -110,8 +101,6 @@
   scroll-snap-align: start;
 }
 
-/* Botón ✕ para quitar un producto del historial, sobre la esquina de la
-   tarjeta. Se resalta al pasar el mouse por la tarjeta o con el teclado. */
 .product-carousel__remove {
   position: absolute;
   top: 0.5rem;
@@ -151,8 +140,6 @@
   outline-offset: 2px;
 }
 
-/* Pantallas táctiles (sin mouse): no hay "pasar el mouse", así que las
-   flechas quedan siempre medio visibles y un poco más pequeñas. */
 @media (hover: none) {
   .product-carousel__arrow {
     opacity: 0.7;
