@@ -6,6 +6,8 @@ import { formatCRC } from '../features/catalog/format'
 import SearchHeader from '../features/catalog/SearchHeader'
 import Footer from '../components/Footer'
 import { useCart } from '../context/useCart'
+import CartRecommendations from '../features/personalization/CartRecommendations'
+import RecentlyViewed from '../features/personalization/RecentlyViewed'
 import '../styles/Cart.css'
 
 /**
@@ -123,6 +125,8 @@ function CartContent() {
             Volver al catálogo
           </Link>
         </div>
+        {/* Carrito vacío: se ofrecen los productos que el usuario ya vio. */}
+        <RecentlyViewed className="personal-section--cart" />
       </main>
     )
   }
@@ -214,6 +218,9 @@ function CartContent() {
           )}
         </aside>
       </div>
+
+      {/* Productos de las mismas categorías que hay en el carrito. */}
+      <CartRecommendations items={items} />
 
       {/* Barra fija inferior en celular: total y botón siempre a la vista
           mientras se eligen los productos. */}
