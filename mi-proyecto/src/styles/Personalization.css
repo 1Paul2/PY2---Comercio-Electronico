@@ -1,0 +1,282 @@
+/* Bloques personalizados (laboratorio 5): saludo del inicio, invitación a
+   iniciar sesión, búsquedas recientes, pestañas de recomendaciones y
+   "Borrar historial". Usa solo los tokens de global.css, así funciona
+   igual en tema claro y oscuro. */
+
+/* .personal-home — Contenedor del inicio, alineado con CategoryShowcase. */
+.personal-home {
+  display: grid;
+  gap: 2rem;
+  max-width: 1500px;
+  width: 95%;
+  margin: 2.5rem auto 0;
+  padding: 0 1rem;
+  text-align: left;
+}
+
+.personal-home__intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.personal-home__intro h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.5rem;
+}
+
+.personal-home__intro p {
+  margin: 0.25rem 0 0;
+  max-width: 60ch;
+}
+
+/* Separación de los carruseles personalizados en detalle y carrito. */
+.personal-section--detail,
+.personal-section--cart {
+  margin-top: 2.5rem;
+}
+
+/* Invitación a iniciar sesión (inicio sin sesión). */
+.personal-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--brand);
+  border-radius: 16px;
+  background: var(--accent-bg);
+}
+
+.personal-invite h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.25rem;
+}
+
+.personal-invite p {
+  margin: 0.25rem 0 0;
+}
+
+/* Botón amarillo de la marca: "Iniciar sesión" / "Explorar el catálogo". */
+.personal-invite__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.personal-invite__button:hover {
+  background: var(--brand-strong);
+}
+
+.personal-invite__button:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: 2px;
+}
+
+/* "Borrar historial" y su confirmación en el mismo lugar. */
+.personal-link-button {
+  padding: 0.4rem 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.personal-link-button:hover {
+  color: var(--danger);
+}
+
+.personal-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.personal-confirm button {
+  min-height: 36px;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.personal-confirm__yes {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.personal-confirm__no {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+/* Pestañas de "Inspirado en tu historial". Se desplazan de lado en celular. */
+.personal-tabs-area {
+  margin-bottom: 0.75rem;
+}
+
+.personal-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 2px 2px 0.5rem;
+  scrollbar-width: none;
+}
+
+.personal-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.personal-tab {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.personal-tab:hover {
+  border-color: var(--accent-border);
+}
+
+.personal-tab--active,
+.personal-tab--active:hover {
+  border-color: var(--brand-strong);
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.personal-tab:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+.personal-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* Búsquedas recientes: botones tipo "chip" con su ✕. */
+.recent-searches__title {
+  margin: 0 0 0.6rem;
+  color: var(--text-h);
+  font-size: 1.1rem;
+}
+
+.recent-searches__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-search-chip {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.recent-search-chip:hover,
+.recent-search-chip:focus-within {
+  border-color: var(--brand-strong);
+}
+
+.recent-search-chip button {
+  border: 0;
+  background: none;
+  color: var(--text-h);
+  font: inherit;
+  cursor: pointer;
+}
+
+.recent-search-chip__query {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0.35rem 0.4rem 0.35rem 0.9rem;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-search-chip__remove {
+  padding: 0 0.75rem 0 0.4rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.recent-search-chip__remove:hover {
+  color: var(--danger);
+  opacity: 1;
+}
+
+.recent-search-chip button:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: -2px;
+}
+
+/* En el catálogo, las búsquedas recientes van sobre la cuadrícula. */
+.recent-searches--catalog {
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 480px) {
+  .personal-home {
+    width: 100%;
+    margin-top: 1.75rem;
+  }
+
+  .personal-home__intro h2 {
+    font-size: 1.25rem;
+  }
+
+  .personal-invite {
+    padding: 1.25rem;
+  }
+
+  .personal-invite__button {
+    width: 100%;
+  }
+}
