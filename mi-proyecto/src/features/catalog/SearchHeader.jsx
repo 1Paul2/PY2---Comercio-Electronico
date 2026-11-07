@@ -61,7 +61,7 @@ function CartLinkContent({ itemCount, pulseKey, shouldPulse }) {
  */
 function SearchHeader({ redirectSearchTo }) {
   const navigate = useNavigate()
-  const { refine } = useSearchBox()
+  const { query, refine } = useSearchBox()
   const { itemCount, lastAddId } = useCart()
   const { session } = useSession()
   const { pathname } = useLocation()
@@ -69,9 +69,6 @@ function SearchHeader({ redirectSearchTo }) {
   const [lastAddIdOnMount] = useState(lastAddId)
   const hasNewAdd = lastAddId !== lastAddIdOnMount
   const isCartPage = pathname === '/carrito'
-  // En /carrito, tocar el ícono del carrito avisa que ya se está ahí en vez
-  // de recargar la misma página. Es un contador (0 = oculto) para que cada
-  // toque vuelva a mostrar el aviso con sus 3 segundos completos.
   const [cartNoticeId, setCartNoticeId] = useState(0)
 
   useEffect(() => {
@@ -91,10 +88,10 @@ function SearchHeader({ redirectSearchTo }) {
     return () => window.clearTimeout(closeTimer)
   }, [lastAddId, hasNewAdd])
 
-  const handleQuery = (query) => {
-    const trimmed = query.trim()
-    if (!trimmed) return
+  const handleQuery = (text) => {
+    const trimmed = text.trim()
     if (redirectSearchTo) {
+      if (!trimmed) return
       navigate(`${redirectSearchTo}?q=${encodeURIComponent(trimmed)}`)
     } else {
       refine(trimmed)
@@ -115,12 +112,14 @@ function SearchHeader({ redirectSearchTo }) {
       </div>
 
       <div className="search-header__center">
-        <SearchAutocomplete redirectSearchTo={redirectSearchTo} onQuery={handleQuery} />
+        <SearchAutocomplete
+          redirectSearchTo={redirectSearchTo}
+          onQuery={handleQuery}
+          activeQuery={redirectSearchTo ? '' : query}
+        />
       </div>
 
       <div className="search-header__right">
-        {/* Con sesión muestra el nombre (lleva a "Mi sesión"); sin sesión
-            invita a iniciarla y luego regresa a esta misma página. */}
         <Link
           to="/login"
           state={{ from: pathname }}
