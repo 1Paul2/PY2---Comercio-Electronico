@@ -3,22 +3,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { searchClient } from './searchClient'
 import { formatCRCParts, formatPercent } from './format'
 import RelatedProducts from './RelatedProducts'
+import RecentlyViewed from '../personalization/RecentlyViewed'
 import { useCart } from '../../context/useCart'
 import { useSession } from '../../context/useSession'
 import { rememberProduct } from '../history/history'
-import { EVENT_TYPES, trackEvent } from '../analytics/events'
+import { EVENT_TYPES, trackEvent } from '../activity/activityLog'
 import '../../styles/ProductDetail.css'
 
-// Nombre del índice de productos en Algolia.
 const INDEX_NAME = 'grupo-07_products'
-
-// Correo de contacto para enviar cotizaciones desde la vista de detalle.
 const QUOTE_EMAIL = 'ventas@maquinariacr.com'
-
-// Atributos prioritarios que se mostrarán como datos rápidos del producto.
 const QUICK_FACT_KEYS = ['brand', 'condition', 'category', 'year']
-
-// Etiquetas legibles para cada facet técnico que se renderiza en la ficha.
 const FACET_LABELS = {
   año_produccion_rango: 'Rango de año de producción',
   blade_type: 'Tipo de hoja',
@@ -81,7 +75,6 @@ function formatFacetValue(value) {
  * Excepciones: No hay.
  */
 function useProduct(id) {
-  // Almacena el resultado de la consulta del producto por ID.
   const [result, setResult] = useState(null)
 
   useEffect(() => {
@@ -127,7 +120,6 @@ function useProduct(id) {
  * Excepciones: No hay.
  */
 function ProductDetail({ id }) {
-  // Estado del producto consultado: carga, éxito, error o no encontrado.
   const { status, product } = useProduct(id)
   const { addItem } = useCart()
   const { session } = useSession()
@@ -136,17 +128,10 @@ function ProductDetail({ id }) {
     if (status === 'found' && product && session?.userId) rememberProduct(product)
   }, [status, product, session?.userId])
 
-  // Permite volver a la vista anterior desde el detalle.
   const navigate = useNavigate()
-
-  // Selección activa del tipo de precio: público o mayorista.
   const [priceTab, setPriceTab] = useState('b2c')
-
-  // Cantidad seleccionada por el usuario para cotizar o comprar.
   const [quantity, setQuantity] = useState(1)
 
-  // Registra la visualización una vez por producto, cuando ya se cargó
-  // (no se cuentan los productos que no existen ni los errores de carga).
   useEffect(() => {
     if (status !== 'found' || !product) return
     trackEvent(EVENT_TYPES.PRODUCT_VIEW, {
@@ -175,7 +160,6 @@ function ProductDetail({ id }) {
     )
   }
 
-  // Desestructura la información principal del producto para renderizar la vista.
   const {
     title,
     description,
@@ -191,31 +175,14 @@ function ProductDetail({ id }) {
     brand_facet,
   } = product
 
-  // Suma total del inventario disponible en todas las sedes del producto.
   const totalStock = locations.reduce((sum, loc) => sum + (loc.stock_quantity || 0), 0)
-
-  // Indica si el producto ofrece precios mayoristas además del público.
   const hasB2B = Boolean(pricing.b2b)
-
-  // Precio activo según la opción seleccionada por el usuario.
   const activeTab = hasB2B ? priceTab : 'b2c'
-
-  // Cantidad mínima permitida según el tipo de precio activo.
   const minQuantity = activeTab === 'b2b' ? pricing.b2b?.min_order_quantity || 1 : 1
-
-  // Verifica si el producto está agotado en la modalidad pública.
   const isOutOfStock = totalStock <= 0 || (activeTab === 'b2c' && pricing.b2c?.in_stock === false)
-
-  // Máximo de unidades permitidas según el stock disponible.
   const maxQuantity = totalStock
-
-  // Indica si la cantidad actual llegó al límite disponible.
   const isAtMaxStock = quantity >= maxQuantity
-
-  // Precio unitario vigente según la pestaña activa.
   const rawUnitPrice = activeTab === 'b2b' ? pricing.b2b?.price_crc : pricing.b2c?.price_crc
-
-  // Mejor descuento aplicable según la cantidad elegida para precio mayorista.
   const bestDiscount =
     activeTab === 'b2b'
       ? (pricing.b2b?.volume_discounts || [])
@@ -223,22 +190,14 @@ function ProductDetail({ id }) {
           .reduce((best, discount) => (!best || discount.min_units > best.min_units ? discount : best), null)
       : null
 
-  // Precio unitario final luego de aplicar el descuento vigente.
   const discountedUnitPrice =
     typeof rawUnitPrice === 'number' && bestDiscount
       ? rawUnitPrice * (1 - bestDiscount.discount_pct)
       : rawUnitPrice
 
-  // Monto total calculado para la cantidad seleccionada.
   const totalPrice = typeof discountedUnitPrice === 'number' ? discountedUnitPrice * quantity : null
-
-  // Datos del precio total para renderizar moneda y monto.
   const activePrice = formatCRCParts(totalPrice)
-
-  // Datos del precio unitario final para mostrarlo en pantalla.
   const unitPriceParts = formatCRCParts(discountedUnitPrice)
-
-  // Datos del precio original para comparar con el descuento aplicado.
   const originalUnitPriceParts = bestDiscount ? formatCRCParts(rawUnitPrice) : null
 
   /**
@@ -254,7 +213,6 @@ function ProductDetail({ id }) {
     setQuantity(totalStock > 0 ? Math.min(nextMin, totalStock) : nextMin)
   }
 
-  // Genera el enlace de correo para enviar la cotización del producto actual.
   const quoteHref = (() => {
     const subject = `Cotización — ${title} (${objectID})`
     const body = [
@@ -276,10 +234,7 @@ function ProductDetail({ id }) {
     })
   }
 
-  // Redondea la calificación para mostrar estrellas completas visualmente.
   const ratingRounded = typeof rating === 'number' ? Math.round(rating) : 0
-
-  // Resumen de datos clave del producto para mostrar en la parte superior.
   const quickFacts = QUICK_FACT_KEYS.filter((key) => facets[key] !== undefined).map((key) => ({
     key,
     label: FACET_LABELS[key] || key,
@@ -545,6 +500,8 @@ function ProductDetail({ id }) {
 
       <div className="product-detail__related">
         <RelatedProducts categoryFacet={category_facet} brandFacet={brand_facet} excludeId={objectID} />
+        {/* Historial del usuario, sin repetir el producto que está viendo. */}
+        <RecentlyViewed excludeId={objectID} className="personal-section--detail" />
       </div>
     </article>
   )
