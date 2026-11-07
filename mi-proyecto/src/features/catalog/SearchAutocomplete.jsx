@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { autocomplete } from '@algolia/autocomplete-js'
 import '@algolia/autocomplete-theme-classic'
-import { recentSearchesPlugin } from './recentSearchesPlugin'
+import { createRecentSearchesPlugin } from './recentSearchesPlugin'
+import { useSession } from '../../context/useSession'
+import { rememberSearch } from '../history/history'
 import { createProductSuggestionsSource } from './productSuggestionsSource'
 import { EVENT_TYPES, trackEvent } from '../analytics/events'
 import '../../styles/SearchAutocomplete.css'
@@ -26,6 +28,7 @@ const SAME_QUERY_WINDOW_MS = 5000
 function SearchAutocomplete({ redirectSearchTo, onQuery }) {
   const containerRef = useRef(null)
   const navigate = useNavigate()
+  const { session } = useSession()
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -41,6 +44,8 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
     const logSearch = (query, method) => {
       window.clearTimeout(typingTimer)
       const trimmed = query.trim()
+      if (!trimmed) return
+      rememberSearch(trimmed)
       if (trimmed.length < 2) return
       const now = Date.now()
       const sameQuery = trimmed.toLowerCase() === lastLogged.query
@@ -60,6 +65,10 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
       }
     }
 
+    const recentSearchesPlugin = createRecentSearchesPlugin(session?.userId, (query) => {
+      logSearch(query, 'suggestion')
+      handleQuery(query)
+    })
     const search = autocomplete({
       container: containerRef.current,
       placeholder: 'Buscar productos...',
@@ -70,10 +79,11 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
       // celular el buscador funcione igual que en la web: el campo queda en el
       // encabezado y las sugerencias se despliegan debajo.
       detachedMediaQuery: 'none',
-      plugins: [recentSearchesPlugin],
+      plugins: recentSearchesPlugin ? [recentSearchesPlugin] : [],
       getSources() {
         return [
           createProductSuggestionsSource({
+            recentSearchesPlugin,
             onSelect: (query) => {
               logSearch(query, 'suggestion')
               handleQuery(query)
@@ -104,7 +114,7 @@ function SearchAutocomplete({ redirectSearchTo, onQuery }) {
       window.clearTimeout(typingTimer)
       search.destroy()
     }
-  }, [redirectSearchTo, onQuery, navigate])
+  }, [redirectSearchTo, onQuery, navigate, session?.userId])
 
   return <div ref={containerRef} className="search-header__autocomplete" />
 }
