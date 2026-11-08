@@ -28,6 +28,7 @@ function Footer() {
           <ul className="site-footer__links">
             <li><Link to="/">› Inicio</Link></li>
             <li><Link to="/productos">› Productos</Link></li>
+            <li><Link to="/analytics">› Métricas de uso</Link></li>
           </ul>
         </div>
 

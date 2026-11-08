@@ -15,6 +15,7 @@ import Devoluciones from './pages/Devoluciones'
 import Envios from './pages/Envios'
 import PreguntasFrecuentes from './pages/PreguntasFrecuentes'
 import Login from './pages/Login'
+import Analytics from './pages/Analytics'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
@@ -50,6 +51,9 @@ function App() {
           {/* Inicio de sesión simulado (laboratorio 5): identifica al usuario
               activo para registrar sus eventos. */}
           <Route path="/login" element={<Login />} />
+
+          {/* Métricas de uso (laboratorio 5). */}
+          <Route path="/analytics" element={<Analytics />} />
 
           {/* Páginas informativas: políticas de la tienda y preguntas
               frecuentes. Sus enlaces están en el footer (policyPages.js). */}
