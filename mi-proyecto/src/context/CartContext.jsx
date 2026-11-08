@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useMemo, useRef } from 'react'
 import { CartContext } from './useCart'
-import { EVENT_TYPES, trackEvent } from '../features/analytics/events'
+import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
 
 /**
  * Nombre: CartContext

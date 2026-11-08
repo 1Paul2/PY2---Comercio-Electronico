@@ -2,15 +2,14 @@ import { getSession } from '../session/session.js'
 
 export const HISTORY_PREFIX = 'ecom_history_'
 export const HISTORY_LIMIT = 10
+export const HISTORY_UPDATED_EVENT = 'ecom-history-updated'
 
 const emptyHistory = () => ({ products: [], searches: [] })
 const cleanQuery = (query) => typeof query === 'string' ? query.trim().replace(/\s+/g, ' ') : ''
 
-// Sin sesión no se guarda historial: evita compartir datos entre visitantes.
-export function getHistory(userId = getSession()?.userId) {
-  if (!userId) return emptyHistory()
+export function parseHistory(raw) {
   try {
-    const value = JSON.parse(localStorage.getItem(HISTORY_PREFIX + userId))
+    const value = JSON.parse(raw)
     return {
       products: Array.isArray(value?.products)
         ? value.products.filter((item) => item && typeof item.objectID === 'string').slice(0, HISTORY_LIMIT) : [],
@@ -22,21 +21,46 @@ export function getHistory(userId = getSession()?.userId) {
   }
 }
 
-function saveEntry(list, entry, matches) {
+export function readRawHistory(userId) {
+  if (!userId) return null
+  try {
+    return localStorage.getItem(HISTORY_PREFIX + userId)
+  } catch {
+    return null
+  }
+}
+
+export function getHistory(userId = getSession()?.userId) {
+  if (!userId) return emptyHistory()
+  return parseHistory(readRawHistory(userId))
+}
+
+function notifyHistoryChange(userId) {
+  window.dispatchEvent(new CustomEvent(HISTORY_UPDATED_EVENT, { detail: { userId } }))
+}
+
+function updateHistory(change) {
   const userId = getSession()?.userId
   if (!userId) return false
   try {
-    const history = getHistory(userId)
-    history[list] = [entry, ...history[list].filter((item) => !matches(item))].slice(0, HISTORY_LIMIT)
+    const history = change(getHistory(userId))
     localStorage.setItem(HISTORY_PREFIX + userId, JSON.stringify(history))
+    notifyHistoryChange(userId)
     return true
   } catch {
-    // Una falla de almacenamiento no debe interrumpir la navegación.
     return false
   }
 }
 
-// Conserva los campos necesarios para mostrar tarjetas y recomendar por categoría.
+function saveEntry(list, entry, matches) {
+  return updateHistory((history) => ({
+    ...history,
+    [list]: [entry, ...history[list].filter((item) => !matches(item))].slice(0, HISTORY_LIMIT),
+  }))
+}
+
+const sameQuery = (a, b) => cleanQuery(a).toLowerCase() === cleanQuery(b).toLowerCase()
+
 export function rememberProduct(product) {
   if (!product || product.objectID == null) return false
   const objectID = String(product.objectID)
@@ -59,5 +83,26 @@ export function rememberSearch(query) {
   return saveEntry('searches', {
     query: normalized,
     searchedAt: new Date().toISOString(),
-  }, (item) => cleanQuery(item.query).toLowerCase() === normalized.toLowerCase())
+  }, (item) => sameQuery(item.query, normalized))
+}
+
+export function removeProduct(objectID) {
+  const id = String(objectID ?? '')
+  if (!id) return false
+  return updateHistory((history) => ({
+    ...history,
+    products: history.products.filter((item) => item.objectID !== id),
+  }))
+}
+
+export function removeSearch(query) {
+  if (!cleanQuery(query)) return false
+  return updateHistory((history) => ({
+    ...history,
+    searches: history.searches.filter((item) => !sameQuery(item.query, query)),
+  }))
+}
+
+export function clearHistory() {
+  return updateHistory(() => emptyHistory())
 }

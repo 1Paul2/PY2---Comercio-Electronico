@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { SessionContext } from './useSession'
 import { endSession, getSession, startSession } from '../features/session/session'
-import { EVENT_TYPES, trackEvent } from '../features/analytics/events'
+import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
 
 /**
  * Nombre: SessionProvider

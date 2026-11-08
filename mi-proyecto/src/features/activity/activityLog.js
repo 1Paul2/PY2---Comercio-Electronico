@@ -1,7 +1,10 @@
+/* La carpeta y el archivo evitan las palabras "analytics" y "events" en la
+   ruta: los bloqueadores de anuncios bloquean esas URL en modo desarrollo
+   (ERR_BLOCKED_BY_CLIENT) y la tienda quedaba sin cargar. */
 import { getSession } from '../session/session'
 
 /**
- * Nombre: events
+ * Nombre: activityLog
  * Descripción: Registro local de las acciones importantes del usuario
  *              (laboratorio 5, requerimiento A). Cada evento se agrega a una
  *              lista guardada en localStorage bajo la llave "ecom_events".
