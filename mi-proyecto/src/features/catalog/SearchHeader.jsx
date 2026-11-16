@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useSearchBox } from 'react-instantsearch'
 import ThemeToggle from '../../components/ThemeToggle'
 import LogoIcon from '../../components/LogoIcon'
 import CartDrawer from '../../components/CartDrawer'
 import NoticeToast from '../../components/NoticeToast'
+import RoleBadge from '../../components/RoleBadge'
 import { useCart } from '../../context/useCart'
 import { useSession } from '../../context/useSession'
+import { PERMISSIONS, hasPermission } from '../../features/session/roles'
 import SearchAutocomplete from './SearchAutocomplete'
 import '../../styles/SearchHeader.css'
 
@@ -53,8 +55,11 @@ function CartLinkContent({ itemCount, pulseKey, shouldPulse }) {
 
 /**
  * Nombre: SearchHeader
- * Descripción: Renderiza el encabezado con navegación, buscador, acceso al carrito
- *              (abre el mini carrito lateral, salvo en /carrito) y selector de tema.
+ * Descripción: Renderiza el encabezado con navegación, buscador, usuario
+ *              activo con su rol, acceso al carrito (abre el mini carrito
+ *              lateral, salvo en /carrito) y selector de tema. El menú y el
+ *              carrito cambian según el rol: el administrador ve su panel y
+ *              no tiene carrito; los clientes ven sus órdenes.
  * Entradas: redirectSearchTo: ruta destino para la búsqueda.
  * Salidas: JSX con el encabezado principal de la vista de catálogo.
  * Excepciones: No hay.
@@ -63,17 +68,25 @@ function SearchHeader({ redirectSearchTo }) {
   const navigate = useNavigate()
   const { query, refine } = useSearchBox()
   const { itemCount, lastAddId } = useCart()
-  const { session } = useSession()
+  const { session, logout } = useSession()
   const { pathname } = useLocation()
   const cartDrawerRef = useRef(null)
   const [lastAddIdOnMount] = useState(lastAddId)
   const hasNewAdd = lastAddId !== lastAddIdOnMount
   const isCartPage = pathname === '/carrito'
   const [cartNoticeId, setCartNoticeId] = useState(0)
+  const canUseCart = hasPermission(session, PERMISSIONS.USE_CART)
+  const canViewOwnOrders = hasPermission(session, PERMISSIONS.VIEW_OWN_ORDERS)
+  const canViewAdmin = hasPermission(session, PERMISSIONS.VIEW_ADMIN_INFO)
+
+  function handleLogout() {
+    logout()
+    navigate('/')
+  }
 
   useEffect(() => {
     const dialog = cartDrawerRef.current
-    if (!hasNewAdd || !dialog) return
+    if (!hasNewAdd || !dialog || !canUseCart) return
 
     if (!dialog.open) {
       dialog.showModal()
@@ -86,7 +99,7 @@ function SearchHeader({ redirectSearchTo }) {
     }, 2200)
 
     return () => window.clearTimeout(closeTimer)
-  }, [lastAddId, hasNewAdd])
+  }, [lastAddId, hasNewAdd, canUseCart])
 
   const handleQuery = (text) => {
     const trimmed = text.trim()
@@ -106,8 +119,14 @@ function SearchHeader({ redirectSearchTo }) {
           Maquinaria CR
         </Link>
         <nav className="site-header__nav">
-          <Link to="/">Inicio</Link>
-          <Link to="/productos">Productos</Link>
+          <NavLink to="/" end>Inicio</NavLink>
+          <NavLink to="/productos">Productos</NavLink>
+          {canViewOwnOrders && <NavLink to="/mis-ordenes">Mis órdenes</NavLink>}
+          {canViewAdmin && (
+            <NavLink to="/admin" className="site-header__admin-link">
+              Panel admin
+            </NavLink>
+          )}
         </nav>
       </div>
 
@@ -120,16 +139,33 @@ function SearchHeader({ redirectSearchTo }) {
       </div>
 
       <div className="search-header__right">
-        <Link
-          to="/login"
-          state={{ from: pathname }}
-          className="session-link"
-          aria-label={session ? `Sesión de ${session.name}` : 'Iniciar sesión'}
-        >
-          <span aria-hidden="true">👤</span>
-          <span className="session-link__name">{session ? session.name.split(' ')[0] : 'Iniciar sesión'}</span>
-        </Link>
-        {isCartPage ? (
+        <div className="session-box">
+          <Link
+            to="/login"
+            state={{ from: pathname }}
+            className="session-link"
+            aria-label={
+              session
+                ? `Sesión de ${session.name}, rol ${session.role}${session.company ? `, empresa ${session.company.name}` : ''}`
+                : 'Iniciar sesión'
+            }
+          >
+            <span aria-hidden="true">👤</span>
+            <span className="session-link__text">
+              <span className="session-link__name">
+                {session ? session.name.split(' ')[0] : 'Iniciar sesión'}
+              </span>
+              {session?.company && <span className="session-link__company">{session.company.name}</span>}
+            </span>
+            {session && <RoleBadge role={session.role} />}
+          </Link>
+          {session && (
+            <button type="button" className="session-logout" onClick={handleLogout}>
+              Salir
+            </button>
+          )}
+        </div>
+        {!canUseCart ? null : isCartPage ? (
           <Link
             to="/carrito"
             className="cart-link"
@@ -155,7 +191,7 @@ function SearchHeader({ redirectSearchTo }) {
         <ThemeToggle />
       </div>
 
-      {!isCartPage && <CartDrawer ref={cartDrawerRef} />}
+      {canUseCart && !isCartPage && <CartDrawer ref={cartDrawerRef} />}
 
       {isCartPage && cartNoticeId > 0 && (
         <NoticeToast
