@@ -14,6 +14,21 @@ import '../styles/Login.css'
 const LOAD_ERROR_MESSAGE =
   'No pudimos consultar los usuarios de la tienda. Revisa tu conexión e inténtalo de nuevo.'
 
+// Orden en que se listan los usuarios; los que no tienen rol válido van al final.
+const ROLE_ORDER = [ROLES.B2C, ROLES.B2B, ROLES.ADMIN]
+
+/**
+ * Nombre: sortUsers
+ * Descripción: Ordena los usuarios por rol y luego por nombre.
+ */
+function sortUsers(users) {
+  const rank = (user) => {
+    const index = ROLE_ORDER.indexOf(user.role)
+    return index === -1 ? ROLE_ORDER.length : index
+  }
+  return [...users].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'es'))
+}
+
 /**
  * Nombre: getHomeForRole
  * Descripción: Página a la que se lleva al usuario después de iniciar sesión
@@ -122,7 +137,7 @@ function Login() {
   const requestUsers = useCallback(() => {
     fetchUsers().then(
       (loadedUsers) => {
-        setUsers(loadedUsers)
+        setUsers(sortUsers(loadedUsers))
         setLoadStatus('ready')
       },
       () => setLoadStatus('error')
@@ -195,6 +210,12 @@ function Login() {
                 registrados o escribe su correo. Los precios, el menú y lo que puedes hacer en
                 la tienda cambian según el rol del usuario.
               </p>
+
+              {location.state?.reason === 'login-required' && !loginError && (
+                <p className="login-card__info" role="status">
+                  Inicia sesión para continuar. Al entrar volverás a la página que querías abrir.
+                </p>
+              )}
 
               {loginError && (
                 <p className="login-card__alert" role="alert">
