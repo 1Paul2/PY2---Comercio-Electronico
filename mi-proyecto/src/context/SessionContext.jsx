@@ -5,9 +5,10 @@ import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
 
 /**
  * Nombre: SessionProvider
- * Descripción: Estado global del usuario activo. Lee la sesión guardada al
- *              cargar la app y registra los eventos de inicio y cierre de
- *              sesión.
+ * Descripción: Estado global del usuario activo y de su rol. Lee la sesión
+ *              guardada al cargar la app y registra los eventos de inicio y
+ *              cierre de sesión. login recibe un usuario del índice de
+ *              usuarios y lanza Error si su rol no es válido.
  * Entradas: children: la aplicación.
  * Salidas: JSX con el proveedor del contexto.
  * Excepciones: No hay.
@@ -15,12 +16,12 @@ import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
 export function SessionProvider({ children }) {
   const [session, setSession] = useState(getSession)
 
-  const login = useCallback(({ name, email }) => {
-    const newSession = startSession({ name, email })
+  const login = useCallback((user) => {
+    const newSession = startSession(user)
     setSession(newSession)
     // Se registra después de guardar la sesión para que el evento ya lleve
     // el id del usuario que acaba de entrar.
-    trackEvent(EVENT_TYPES.LOGIN, { name: newSession.name, email: newSession.email })
+    trackEvent(EVENT_TYPES.LOGIN, { name: newSession.name, email: newSession.email, role: newSession.role })
     return newSession
   }, [])
 
