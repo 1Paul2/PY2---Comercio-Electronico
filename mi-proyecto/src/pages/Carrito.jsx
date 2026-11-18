@@ -8,6 +8,7 @@ import Footer from '../components/Footer'
 import { useCart } from '../context/useCart'
 import CartRecommendations from '../features/personalization/CartRecommendations'
 import RecentlyViewed from '../features/personalization/RecentlyViewed'
+import { formatB2BConditions, PRICE_TYPES, validateCartItem } from '../features/pricing/pricing'
 import '../styles/Cart.css'
 
 /**
@@ -27,6 +28,12 @@ function unitsLabel(count) {
 function CartItem({ item, increment, decrement, onRequestRemove, onToggleSelected }) {
   const isAtStockLimit = Number.isFinite(item.maxStock) && item.quantity >= item.maxStock
   const checkboxId = `cart-select-${item.id}`
+  const isB2B = item.priceType === PRICE_TYPES.B2B
+  const hasMinimum = item.minQuantity > 1
+  const isAtMinimum = hasMinimum && item.quantity <= item.minQuantity
+  const conditions = isB2B ? formatB2BConditions(item.minQuantity, item.volumeDiscounts) : ''
+  const errors = validateCartItem(item)
+  const hasDiscount = item.discountPct > 0 && Number.isFinite(item.basePrice)
 
   return (
     <article className={`cart-item${item.selected ? '' : ' cart-item--unselected'}`}>
@@ -47,8 +54,33 @@ function CartItem({ item, increment, decrement, onRequestRemove, onToggleSelecte
 
       <div className="cart-item__details">
         <h2>{item.name}</h2>
-        <p>Precio unitario: {formatCRC(item.price)}</p>
-        <p className="cart-item__subtotal">Subtotal: {formatCRC(item.price * item.quantity)}</p>
+        <p className="cart-item__price-type">
+          <span className={`cart-price-tag cart-price-tag--${isB2B ? 'b2b' : 'b2c'}`}>
+            {isB2B ? 'Precio B2B' : 'Precio B2C'}
+          </span>
+        </p>
+        {Number.isFinite(item.unitPrice) ? (
+          <>
+            <p>
+              Precio unitario:{' '}
+              {hasDiscount && <s className="cart-item__base-price">{formatCRC(item.basePrice)}</s>}{' '}
+              {formatCRC(item.unitPrice)}
+              {hasDiscount && (
+                <span className="cart-item__discount">−{Math.round(item.discountPct * 100)}% por volumen</span>
+              )}
+            </p>
+            <p className="cart-item__subtotal">Subtotal: {formatCRC(item.unitPrice * item.quantity)}</p>
+          </>
+        ) : null}
+        {conditions && <p className="cart-item__conditions">Condiciones B2B: {conditions}</p>}
+        {errors.map((error) => (
+          <p key={error} className="cart-item__error" role="alert">
+            {error}
+          </p>
+        ))}
+        {isAtMinimum && errors.length === 0 && (
+          <p className="cart-item__stock-note">Estás en el pedido mínimo B2B ({item.minQuantity} unidades).</p>
+        )}
         {!item.selected && <p className="cart-item__excluded">No se incluirá en esta compra</p>}
         {isAtStockLimit && (
           <p className="cart-item__stock-note" role="status">
@@ -61,7 +93,10 @@ function CartItem({ item, increment, decrement, onRequestRemove, onToggleSelecte
         <div className="cart-item__quantity" aria-label={`Cantidad de ${item.name}`}>
           <button
             type="button"
-            onClick={() => (item.quantity === 1 ? onRequestRemove(item) : decrement(item.id))}
+            // En el mínimo B2B, decrement no baja la cantidad y muestra un aviso.
+            onClick={() => (item.quantity === 1 && !hasMinimum ? onRequestRemove(item) : decrement(item.id))}
+            aria-disabled={isAtMinimum}
+            className={isAtMinimum ? 'is-at-minimum' : undefined}
             aria-label={`Disminuir cantidad de ${item.name}`}
           >
             −
@@ -99,13 +134,15 @@ function CartContent() {
     removeItem,
     toggleSelected,
     setAllSelected,
+    selectedErrors,
+    canCheckout,
   } = useCart()
   const [pendingRemoval, setPendingRemoval] = useState(null)
   const navigate = useNavigate()
   const hasSelection = selectedItems.length > 0
 
   function handleStartCheckout() {
-    if (!hasSelection) return
+    if (!canCheckout) return
     navigate('/checkout')
   }
 
@@ -207,7 +244,7 @@ function CartContent() {
             type="button"
             className="cart-summary__checkout"
             onClick={handleStartCheckout}
-            disabled={!hasSelection}
+            disabled={!canCheckout}
           >
             Ir a checkout
           </button>
@@ -215,6 +252,16 @@ function CartContent() {
             <p className="cart-summary__hint" role="status">
               Selecciona al menos un producto para ir a checkout.
             </p>
+          )}
+          {hasSelection && selectedErrors.length > 0 && (
+            <div className="cart-summary__errors" role="alert">
+              <p>Corrige lo siguiente para continuar:</p>
+              <ul>
+                {selectedErrors.map((error) => (
+                  <li key={error}>{error}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </aside>
       </div>
@@ -233,7 +280,7 @@ function CartContent() {
           type="button"
           className="cart-mobile-bar__button"
           onClick={handleStartCheckout}
-          disabled={!hasSelection}
+          disabled={!canCheckout}
         >
           Ir a checkout
         </button>

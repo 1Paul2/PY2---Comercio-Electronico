@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/useCart'
 import { formatCRC } from '../features/catalog/format'
+import { formatB2BConditions, PRICE_TYPES, validateCartItem } from '../features/pricing/pricing'
 import '../styles/CartDrawer.css'
 
 function CartDrawer({ ref }) {
@@ -16,6 +17,8 @@ function CartDrawer({ ref }) {
     toggleSelected,
     setAllSelected,
     subtotalWithIva,
+    selectedErrors,
+    canCheckout,
   } = useCart()
   const hasSelection = selectedItems.length > 0
   const [pendingRemoval, setPendingRemoval] = useState(null)
@@ -41,7 +44,7 @@ function CartDrawer({ ref }) {
   }
 
   function handleStartCheckout() {
-    if (!hasSelection) return
+    if (!canCheckout) return
     closeDrawer()
     navigate('/checkout')
   }
@@ -113,16 +116,38 @@ function CartDrawer({ ref }) {
                       <p className="cart-drawer__item-name">{item.name}</p>
 
                       <div className="cart-drawer__meta-row">
-                        <span className="cart-drawer__label">Precio</span>
-                        <strong className="cart-drawer__price">{formatCRC(item.price)}</strong>
+                        <span className="cart-drawer__label">
+                          {item.priceType === PRICE_TYPES.B2B ? 'Precio B2B' : 'Precio'}
+                        </span>
+                        <strong className="cart-drawer__price">
+                          {Number.isFinite(item.unitPrice) ? formatCRC(item.unitPrice) : 'No disponible'}
+                          {item.discountPct > 0 && (
+                            <span className="cart-drawer__discount"> −{Math.round(item.discountPct * 100)}%</span>
+                          )}
+                        </strong>
                       </div>
+
+                      {item.priceType === PRICE_TYPES.B2B && formatB2BConditions(item.minQuantity, item.volumeDiscounts) && (
+                        <p className="cart-drawer__conditions">
+                          {formatB2BConditions(item.minQuantity, item.volumeDiscounts)}
+                        </p>
+                      )}
+
+                      {validateCartItem(item).map((error) => (
+                        <p key={error} className="cart-drawer__error" role="alert">
+                          {error}
+                        </p>
+                      ))}
 
                       <div className="cart-drawer__meta-row cart-drawer__meta-row--qty">
                         <span className="cart-drawer__label">Cantidad</span>
                         <div className="cart-drawer__quantity">
                           <button
                             type="button"
-                            onClick={() => (item.quantity === 1 ? handleRequestRemove(item) : decrement(item.id))}
+                            onClick={() =>
+                              item.quantity === 1 && !(item.minQuantity > 1) ? handleRequestRemove(item) : decrement(item.id)
+                            }
+                            aria-disabled={item.minQuantity > 1 && item.quantity <= item.minQuantity}
                             aria-label={`Disminuir cantidad de ${item.name}`}
                           >
                             −
@@ -141,7 +166,9 @@ function CartDrawer({ ref }) {
 
                       <div className="cart-drawer__meta-row cart-drawer__meta-row--total">
                         <span className="cart-drawer__label">Subtotal</span>
-                        <strong className="cart-drawer__item-subtotal">{formatCRC(item.price * item.quantity)}</strong>
+                        <strong className="cart-drawer__item-subtotal">
+                          {Number.isFinite(item.unitPrice) ? formatCRC(item.unitPrice * item.quantity) : '—'}
+                        </strong>
                       </div>
                     </div>
                   </li>
@@ -162,13 +189,18 @@ function CartDrawer({ ref }) {
                   type="button"
                   className="cart-drawer__primary"
                   onClick={handleStartCheckout}
-                  disabled={!hasSelection}
+                  disabled={!canCheckout}
                 >
                   Ir a checkout
                 </button>
                 {!hasSelection && (
                   <p className="cart-drawer__hint" role="status">
                     Selecciona al menos un producto para ir a checkout.
+                  </p>
+                )}
+                {hasSelection && selectedErrors.length > 0 && (
+                  <p className="cart-drawer__hint cart-drawer__hint--error" role="alert">
+                    Revisa los productos marcados: {selectedErrors[0]}
                   </p>
                 )}
                 <Link className="cart-drawer__secondary" to="/carrito" onClick={closeDrawer}>

@@ -665,3 +665,89 @@
   font-size: 0.8rem;
   color: var(--warning);
 }
+
+/* ---- Precios por rol (proyecto 3) ---- */
+
+/* Etiqueta del tipo de precio de la línea. */
+.cart-item__price-type {
+  margin: 0.15rem 0 0.25rem;
+}
+
+.cart-price-tag {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.cart-price-tag--b2c {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.cart-price-tag--b2b {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+/* Precio de lista tachado cuando hay descuento por volumen. */
+.cart-item__base-price {
+  color: var(--text);
+  font-weight: 400;
+}
+
+.cart-item__discount {
+  margin-left: 0.4rem;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Condiciones B2B: "Pedido mínimo 3 · 5% desde 2 u.". */
+.cart-item__conditions {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+/* Error de la línea (precio inválido o debajo del mínimo B2B). */
+.cart-item__error {
+  padding: 0.35rem 0.5rem;
+  border-left: 3px solid var(--danger);
+  background: var(--danger-bg);
+  color: var(--text-h);
+  font-size: 0.82rem;
+}
+
+/* "−" en el mínimo B2B: se ve inactivo, pero al presionarlo explica por qué. */
+.cart-item__quantity button.is-at-minimum {
+  opacity: 0.45;
+}
+
+/* Lista de lo que impide ir al checkout. */
+.cart-summary__errors {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: var(--danger-bg);
+  color: var(--text-h);
+  font-size: 0.82rem;
+}
+
+.cart-summary__errors p {
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+}
+
+.cart-summary__errors ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
