@@ -1,6 +1,10 @@
 import { useEffect, useReducer, useMemo, useRef } from 'react'
 import { CartContext } from './useCart'
+import { useSession } from './useSession'
 import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
+import { getSession } from '../features/session/session'
+import { ROLES } from '../features/session/roles'
+import { priceCartItem, validateCartItem } from '../features/pricing/pricing'
 
 /**
  * Nombre: CartContext
@@ -18,6 +22,20 @@ import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
  * Persistencia (punto 2.9): solo se guardan los items en localStorage. Los
  * montos (subtotal, IVA) se recalculan siempre a partir de ellos.
  *
+ * Precios por rol (proyecto 3, ver features/pricing/pricing.js):
+ *   - Cada línea guarda los dos precios del producto (`prices`) y su precio
+ *     calculado para el rol actual (priceType, basePrice, unitPrice,
+ *     minQuantity). `price` es igual a unitPrice.
+ *   - El descuento por volumen B2B se recalcula cada vez que cambia la
+ *     cantidad de una línea.
+ *   - Un cliente B2B no puede bajar del pedido mínimo con "−": se muestra un
+ *     aviso. Para quitar el producto debe usar "Eliminar".
+ *   - Cambio de usuario: el carrito recuerda a qué usuario pertenece
+ *     (CART_OWNER_STORAGE_KEY). Si un visitante inicia sesión, el carrito se
+ *     conserva y sus precios se recalculan con el rol nuevo (las cantidades
+ *     B2B suben al mínimo si hace falta). Si entra otro usuario, se cierra la
+ *     sesión o entra un administrador (que no compra), el carrito se vacía.
+ *
  * Selección para el checkout: cada línea tiene `selected`. Solo las líneas
  * seleccionadas pasan al checkout, y los montos (subtotal, IVA, envío y
  * total) se calculan únicamente sobre ellas. Un producto nuevo (o al que se
@@ -26,6 +44,7 @@ import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
  */
 
 const CART_STORAGE_KEY = 'maquinaria-cr-cart'
+const CART_OWNER_STORAGE_KEY = 'maquinaria-cr-cart-owner'
 const IVA_RATE = 0.13
 const SHIPPING_RATE_PER_KG = 30
 const DEFAULT_ITEM_WEIGHT_KG = 5
@@ -36,15 +55,17 @@ const initialState = {
   lastMessage: null,
   lastMessageType: null,
   lastAddId: 0,
-  // Último agregado exitoso (qué producto y cuántas unidades entraron de
-  // verdad); se usa para registrar el evento "add_to_cart".
   lastAdded: null,
+  owner: null,
+  role: null,
 }
 
 /**
  * Nombre: isValidStoredItem
  * Descripción: Verifica que un item leído de localStorage tenga los datos
- *              mínimos para mostrarse y calcular montos sin errores.
+ *              mínimos para mostrarse y calcular montos sin errores. Los
+ *              carritos de versiones anteriores no traen `prices` y se
+ *              descartan: sin los dos precios no se sabe cuánto paga cada rol.
  * Entradas: item: valor leído del almacenamiento.
  * Salidas: true si el item es utilizable, false si debe descartarse.
  * Excepciones: No hay.
@@ -55,16 +76,52 @@ function isValidStoredItem(item) {
     typeof item === 'object' &&
     item.id !== undefined &&
     item.id !== null &&
-    Number.isFinite(item.price) &&
-    item.price >= 0 &&
+    item.prices !== null &&
+    typeof item.prices === 'object' &&
     Number.isInteger(item.quantity) &&
     item.quantity >= 1
   )
 }
 
 /**
+ * Nombre: readOwner
+ * Descripción: Lee de localStorage el usuario dueño del carrito.
+ * Salidas: userId o null (visitante o dato ausente).
+ */
+function readOwner() {
+  try {
+    return localStorage.getItem(CART_OWNER_STORAGE_KEY) || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Nombre: repriceForRole
+ * Descripción: Recalcula los precios de las líneas para un rol. En B2B, las
+ *              cantidades por debajo del mínimo suben al mínimo si el stock
+ *              alcanza.
+ * Entradas: items: líneas del carrito; role: rol nuevo (o null).
+ * Salidas: { items, raisedNames } con los nombres de las líneas ajustadas.
+ */
+function repriceForRole(items, role) {
+  const raisedNames = []
+  const repriced = items.map((item) => {
+    const priced = priceCartItem(item, role)
+    const stock = Number.isFinite(item.maxStock) ? item.maxStock : Infinity
+    if (priced.quantity < priced.minQuantity && priced.minQuantity <= stock) {
+      raisedNames.push(item.name)
+      return priceCartItem(item, role, priced.minQuantity)
+    }
+    return priced
+  })
+  return { items: repriced, raisedNames }
+}
+
+/**
  * Nombre: getInitialState
- * Descripción: Recupera el carrito guardado en localStorage al cargar la app.
+ * Descripción: Recupera el carrito guardado en localStorage al cargar la app
+ *              y calcula sus precios con el rol de la sesión guardada.
  *              Descarta los items inválidos (por ejemplo, si el dato fue
  *              editado a mano o viene de una versión anterior).
  * Entradas: No recibe parámetros.
@@ -73,23 +130,21 @@ function isValidStoredItem(item) {
  *              devuelve un carrito vacío en vez de romper la aplicación.
  */
 function getInitialState() {
+  const session = getSession()
+  const base = { ...initialState, owner: readOwner(), role: session?.role ?? null }
   try {
     const storedItems = localStorage.getItem(CART_STORAGE_KEY)
     const items = storedItems ? JSON.parse(storedItems) : []
 
-    return Array.isArray(items)
-      ? {
-          ...initialState,
-          items: items.filter(isValidStoredItem).map((item) => ({
-            ...item,
-            weight_kg: normalizeItemWeight(item.weight_kg),
-            // Carritos guardados antes de existir la selección: todo seleccionado.
-            selected: item.selected !== false,
-          })),
-        }
-      : initialState
+    if (!Array.isArray(items)) return base
+    const cleanItems = items.filter(isValidStoredItem).map((item) => ({
+      ...item,
+      weight_kg: normalizeItemWeight(item.weight_kg),
+      selected: item.selected !== false,
+    }))
+    return { ...base, items: repriceForRole(cleanItems, base.role).items }
   } catch {
-    return initialState
+    return base
   }
 }
 
@@ -98,7 +153,7 @@ function normalizeItemWeight(weight_kg, fallback = DEFAULT_ITEM_WEIGHT_KG) {
 }
 
 function calculateSubtotal(item) {
-  return item.price * item.quantity
+  return Number.isFinite(item.unitPrice) ? item.unitPrice * item.quantity : 0
 }
 
 function formatAddedMessage(quantity, name, isPartial = false) {
@@ -109,14 +164,43 @@ function formatAddedMessage(quantity, name, isPartial = false) {
   return `${prefix}${quantity} ${unitLabel} de "${name}" ${verb} al carrito`
 }
 
+function addedResult(state, items, newLine, addedQuantity, requestedQuantity) {
+  const isPartial = addedQuantity < requestedQuantity
+  return {
+    ...state,
+    items,
+    lastAddId: state.lastAddId + 1,
+    lastAdded: {
+      productId: newLine.id,
+      name: newLine.name,
+      price: newLine.unitPrice,
+      priceType: newLine.priceType,
+      quantity: addedQuantity,
+    },
+    lastMessage: isPartial
+      ? `${formatAddedMessage(addedQuantity, newLine.name, true)} debido a limitantes de stock`
+      : formatAddedMessage(addedQuantity, newLine.name),
+    lastMessageType: isPartial ? 'warning' : 'success',
+  }
+}
+
+function warning(state, message) {
+  return { ...state, lastMessage: message, lastMessageType: 'warning' }
+}
+
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { id, name, price, image, quantity = 1, maxStock, weight_kg } = action.payload
+      const product = action.payload
+      const { id, name, quantity = 1, maxStock, weight_kg } = product
       const existing = state.items.find((item) => item.id === id)
       const itemWeight = normalizeItemWeight(weight_kg, existing?.weight_kg)
       const requestedQuantity = Math.max(1, Math.floor(quantity))
       const stockLimit = Number.isFinite(maxStock) ? maxStock : existing?.maxStock
+
+      if (state.role === ROLES.ADMIN) {
+        return warning(state, 'Los administradores no pueden agregar productos al carrito')
+      }
 
       if (existing) {
         const available = Number.isFinite(stockLimit)
@@ -125,53 +209,49 @@ function cartReducer(state, action) {
         const addedQuantity = Math.min(requestedQuantity, available)
 
         if (addedQuantity === 0) {
-          return {
-            ...state,
-            lastMessage: `No se agregaron unidades de "${name}" porque ya no hay stock disponible`,
-            lastMessageType: 'warning',
-          }
+          return warning(state, `No se agregaron unidades de "${name}" porque ya no hay stock disponible`)
         }
 
-        return {
-          ...state,
-          lastAddId: state.lastAddId + 1,
-          lastAdded: { productId: id, name, price, quantity: addedQuantity },
-          items: state.items.map((item) =>
-            item.id === id
-              ? { ...item, maxStock: stockLimit ?? item.maxStock, quantity: item.quantity + addedQuantity, weight_kg: itemWeight, selected: true }
-              : item
-          ),
-          lastMessage:
-            addedQuantity < requestedQuantity
-              ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
-              : formatAddedMessage(addedQuantity, name),
-          lastMessageType: addedQuantity < requestedQuantity ? 'warning' : 'success',
-        }
+        const updated = priceCartItem(
+          {
+            ...existing,
+            prices: product.prices ?? existing.prices,
+            locations: product.locations ?? existing.locations,
+            maxStock: stockLimit ?? existing.maxStock,
+            weight_kg: itemWeight,
+            selected: true,
+          },
+          state.role,
+          existing.quantity + addedQuantity
+        )
+        const items = state.items.map((item) => (item.id === id ? updated : item))
+        return addedResult(state, items, updated, addedQuantity, requestedQuantity)
       }
 
+      const priced = priceCartItem({ ...product, weight_kg: itemWeight, selected: true }, state.role, requestedQuantity)
+
+      if (!Number.isFinite(priced.unitPrice)) {
+        return warning(state, `No se agregó "${name}": su precio no está disponible`)
+      }
+
+      if (Number.isFinite(stockLimit) && stockLimit < priced.minQuantity) {
+        return warning(
+          state,
+          `No se agregó "${name}": el pedido mínimo B2B es de ${priced.minQuantity} unidades y solo hay ${Math.max(0, stockLimit)}`
+        )
+      }
+
+      const firstQuantity = Math.max(priced.minQuantity, requestedQuantity)
       const addedQuantity = Number.isFinite(stockLimit)
-        ? Math.min(requestedQuantity, Math.max(0, stockLimit))
-        : requestedQuantity
+        ? Math.min(firstQuantity, Math.max(0, stockLimit))
+        : firstQuantity
 
       if (addedQuantity === 0) {
-        return {
-          ...state,
-          lastMessage: `No se agregó "${name}" porque no hay stock disponible`,
-          lastMessageType: 'warning',
-        }
+        return warning(state, `No se agregó "${name}" porque no hay stock disponible`)
       }
 
-      return {
-        ...state,
-        lastAddId: state.lastAddId + 1,
-        lastAdded: { productId: id, name, price, quantity: addedQuantity },
-        items: [...state.items, { id, name, price, image, quantity: addedQuantity, maxStock: stockLimit, weight_kg: itemWeight, selected: true }],
-        lastMessage:
-          addedQuantity < requestedQuantity
-            ? `${formatAddedMessage(addedQuantity, name, true)} debido a limitantes de stock`
-            : formatAddedMessage(addedQuantity, name),
-        lastMessageType: addedQuantity < requestedQuantity ? 'warning' : 'success',
-      }
+      const newItem = priceCartItem({ ...priced, maxStock: stockLimit }, state.role, addedQuantity)
+      return addedResult(state, [...state.items, newItem], newItem, addedQuantity, firstQuantity)
     }
 
     case 'INCREMENT': {
@@ -179,19 +259,13 @@ function cartReducer(state, action) {
       if (!item) return state
 
       if (Number.isFinite(item.maxStock) && item.quantity >= item.maxStock) {
-        return {
-          ...state,
-          lastMessage: `No hay más unidades disponibles de "${item.name}"`,
-          lastMessageType: 'warning',
-        }
+        return warning(state, `No hay más unidades disponibles de "${item.name}"`)
       }
 
       return {
         ...state,
-        items: state.items.map((item) =>
-          item.id === action.payload.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+        items: state.items.map((line) =>
+          line.id === action.payload.id ? priceCartItem(line, state.role, line.quantity + 1) : line
         ),
         lastMessage: null,
         lastMessageType: null,
@@ -202,22 +276,23 @@ function cartReducer(state, action) {
       const item = state.items.find((item) => item.id === action.payload.id)
       if (!item) return state
 
-      if (item.quantity <= 1) {
-        return {
-          ...state,
-          lastMessage: null,
-          lastMessageType: null,
-        }
+      const minQuantity = Number.isInteger(item.minQuantity) && item.minQuantity > 1 ? item.minQuantity : 1
+
+      if (item.quantity <= minQuantity) {
+        if (minQuantity === 1) return { ...state, lastMessage: null, lastMessageType: null }
+        return warning(
+          state,
+          `El pedido mínimo B2B de "${item.name}" es de ${minQuantity} unidades. Para quitarlo del carrito usa "Eliminar".`
+        )
       }
 
       return {
         ...state,
-        items: state.items.map((item) =>
-          item.id === action.payload.id
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
+        items: state.items.map((line) =>
+          line.id === action.payload.id ? priceCartItem(line, state.role, line.quantity - 1) : line
         ),
         lastMessage: null,
+        lastMessageType: null,
       }
     }
 
@@ -272,10 +347,48 @@ function cartReducer(state, action) {
         lastMessageType: null,
       }
     }
+
     case 'HYDRATE_CART': {
+      const items = (action.payload.items || []).filter(isValidStoredItem)
       return {
         ...state,
-        items: action.payload.items || [],
+        items: repriceForRole(items, state.role).items,
+      }
+    }
+
+    case 'SYNC_SESSION': {
+      const { userId, role } = action.payload
+      if (state.owner === userId && state.role === role) return state
+
+      const hadItems = state.items.length > 0
+      const isSameOwner = state.owner === userId
+      const guestLoggingIn = state.owner === null && userId !== null
+
+      if (role === ROLES.ADMIN || (!isSameOwner && !guestLoggingIn)) {
+        return {
+          ...state,
+          owner: userId,
+          role,
+          items: [],
+          lastMessage: hadItems ? 'Se vació el carrito porque cambió el usuario' : null,
+          lastMessageType: hadItems ? 'info' : null,
+        }
+      }
+
+      const { items, raisedNames } = repriceForRole(state.items, role)
+      let lastMessage = null
+      if (hadItems && raisedNames.length > 0) {
+        lastMessage = `Se actualizaron los precios del carrito a tu tarifa. Se ajustó al pedido mínimo B2B: ${raisedNames.join(', ')}`
+      } else if (hadItems) {
+        lastMessage = 'Se actualizaron los precios del carrito según tu tipo de cliente'
+      }
+      return {
+        ...state,
+        owner: userId,
+        role,
+        items,
+        lastMessage,
+        lastMessageType: lastMessage ? 'info' : null,
       }
     }
 
@@ -286,19 +399,24 @@ function cartReducer(state, action) {
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, undefined, getInitialState)
+  const { session } = useSession()
+  const sessionUserId = session?.userId ?? null
+  const sessionRole = session?.role ?? null
+
+  useEffect(() => {
+    dispatch({ type: 'SYNC_SESSION', payload: { userId: sessionUserId, role: sessionRole } })
+  }, [sessionUserId, sessionRole])
 
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.items))
+      if (state.owner) localStorage.setItem(CART_OWNER_STORAGE_KEY, state.owner)
+      else localStorage.removeItem(CART_OWNER_STORAGE_KEY)
     } catch {
-      // Sin localStorage (modo privado o almacenamiento lleno): el carrito
-      // sigue funcionando en memoria. Este comentario evita el error no-empty.
+      // Sin localStorage el carrito sigue funcionando en memoria.
     }
-  }, [state.items])
+  }, [state.items, state.owner])
 
-  // Registra "add_to_cart" una vez por cada agregado exitoso. Se hace aquí
-  // (y no en cada botón) porque se agrega desde varias pantallas; el reducer
-  // sabe cuántas unidades entraron de verdad según el stock.
   const loggedAddIdRef = useRef(state.lastAddId)
   useEffect(() => {
     if (state.lastAddId === loggedAddIdRef.current || !state.lastAdded) return
@@ -311,14 +429,12 @@ export function CartProvider({ children }) {
 
     const timeoutId = window.setTimeout(() => {
       dispatch({ type: 'CLEAR_MESSAGE' })
-    }, 5000)
+    }, 6000)
 
     return () => window.clearTimeout(timeoutId)
   }, [state.lastMessage])
 
   const value = useMemo(() => {
-    // itemCount cuenta TODO el carrito (insignia del header); los montos se
-    // calculan solo con los productos seleccionados para el checkout.
     const itemCount = state.items.reduce((total, item) => total + item.quantity, 0)
     const selectedItems = state.items.filter((item) => item.selected)
     const selectedItemCount = selectedItems.reduce((total, item) => total + item.quantity, 0)
@@ -330,6 +446,7 @@ export function CartProvider({ children }) {
       ? 0
       : Math.max(MIN_SHIPPING_COST, Math.ceil(totalWeight * SHIPPING_RATE_PER_KG))
     const total = subtotalWithIva + shippingCost
+    const selectedErrors = selectedItems.flatMap(validateCartItem)
 
     return {
       items: state.items,
@@ -345,6 +462,9 @@ export function CartProvider({ children }) {
       subtotalWithIva,
       shippingCost,
       total,
+      selectedErrors,
+      canCheckout: selectedItems.length > 0 && selectedErrors.length === 0,
+      priceRole: state.role,
 
       addItem: (product) => dispatch({ type: 'ADD_ITEM', payload: product }),
       increment: (id) => dispatch({ type: 'INCREMENT', payload: { id } }),

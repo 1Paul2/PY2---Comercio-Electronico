@@ -1,0 +1,39 @@
+/* RoleBadge.css — Etiqueta de rol. Colores fijos para que se distinga igual
+   sobre el header amarillo y sobre el fondo claro u oscuro. */
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.role-badge--b2c {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.role-badge--b2b {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.role-badge--admin {
+  background: #08060d;
+  color: #ffd400;
+  border-color: #08060d;
+}
+
+.role-badge--invalid {
+  background: #f3f4f6;
+  color: #4b5563;
+  border-color: #d1d5db;
+}

@@ -1,47 +1,35 @@
+import { isValidRole } from './roles'
+
 /**
  * Nombre: session
  * Descripción: Sesión simulada del usuario activo, guardada en localStorage
  *              bajo la llave "ecom_session". No hay contraseñas ni servidor:
- *              solo sirve para saber quién usa la tienda y asociarle sus
- *              eventos e historial (laboratorio 5).
+ *              el usuario se elige entre los del índice de usuarios de
+ *              Algolia (ver usersIndex.js) y la sesión guarda su rol para
+ *              que la tienda adapte precios, menús y accesos.
  *
  * Forma de la sesión guardada:
  *   {
- *     userId: "u-1a2b3c4d",          // id estable derivado del correo
- *     name: "María Rodríguez",
- *     email: "maria@correo.com",
- *     loggedInAt: "2026-10-31T15:20:00.000Z"
+ *     userId: "u-b2b-01",            // objectID del usuario en Algolia
+ *     name: "Carlos Vargas Rojas",
+ *     email: "compras@constructoratica.cr",
+ *     role: "B2C" | "B2B" | "ADMIN",
+ *     company: { name, legalId, sector, contact, phone } | null,
+ *     loggedInAt: "2026-11-16T15:20:00.000Z"
  *   }
  *
- * El historial de cada usuario (persona 2) usa la llave
- * "ecom_history_" + userId, por eso el id se deriva del correo: la misma
- * persona recupera su historial cada vez que inicia sesión.
+ * El historial de cada usuario usa la llave "ecom_history_" + userId, así
+ * la misma persona recupera su historial cada vez que inicia sesión.
  */
 
 export const SESSION_STORAGE_KEY = 'ecom_session'
 
 /**
- * Nombre: createUserId
- * Descripción: Genera un id corto y estable a partir del correo (hash
- *              FNV-1a). El mismo correo siempre produce el mismo id y el
- *              correo no queda expuesto en el nombre de las llaves.
- * Entradas: email: correo del usuario.
- * Salidas: string con forma "u-xxxxxxxx".
- * Excepciones: No lanza.
- */
-export function createUserId(email) {
-  const normalized = String(email ?? '').trim().toLowerCase()
-  let hash = 0x811c9dc5
-  for (let i = 0; i < normalized.length; i += 1) {
-    hash ^= normalized.charCodeAt(i)
-    hash = Math.imul(hash, 0x01000193)
-  }
-  return `u-${(hash >>> 0).toString(16).padStart(8, '0')}`
-}
-
-/**
  * Nombre: isValidSession
- * Descripción: Verifica que lo leído de localStorage tenga los datos mínimos.
+ * Descripción: Verifica que lo leído de localStorage tenga los datos mínimos
+ *              y un rol válido. Una sesión vieja sin rol (laboratorio 5) o
+ *              con un rol alterado se descarta y la persona queda como
+ *              visitante.
  */
 function isValidSession(value) {
   return (
@@ -49,7 +37,8 @@ function isValidSession(value) {
     typeof value === 'object' &&
     typeof value.userId === 'string' &&
     typeof value.name === 'string' &&
-    typeof value.email === 'string'
+    typeof value.email === 'string' &&
+    isValidRole(value.role)
   )
 }
 
@@ -73,15 +62,21 @@ export function getSession() {
 /**
  * Nombre: startSession
  * Descripción: Crea y guarda la sesión del usuario que inicia sesión.
- * Entradas: { name, email } ya validados.
+ * Entradas: user: usuario del índice (ver usersIndex.js) con rol válido.
  * Salidas: la sesión guardada.
- * Excepciones: No lanza; sin localStorage la sesión vive solo en memoria.
+ * Excepciones: Lanza Error si el usuario no tiene un rol válido. Sin
+ *              localStorage la sesión vive solo en memoria.
  */
-export function startSession({ name, email }) {
+export function startSession(user) {
+  if (!isValidRole(user?.role)) {
+    throw new Error('El usuario no tiene un rol válido')
+  }
   const session = {
-    userId: createUserId(email),
-    name: name.trim().replace(/\s+/g, ' '),
-    email: email.trim().toLowerCase(),
+    userId: user.userId,
+    name: user.name.trim().replace(/\s+/g, ' '),
+    email: user.email.trim().toLowerCase(),
+    role: user.role,
+    company: user.company ?? null,
     loggedInAt: new Date().toISOString(),
   }
   try {

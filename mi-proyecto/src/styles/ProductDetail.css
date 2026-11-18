@@ -233,33 +233,6 @@
   font-weight: 600;
 }
 
-/* Tabs del buy-box (B2C / B2B). */
-.buybox__tabs {
-  display: flex;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.buybox__tabs button {
-  flex: 1;
-  padding: 0.55rem 0.4rem;
-  border: none;
-  background: none;
-  color: var(--text);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-
-/* Tab activa. */
-.buybox__tabs button.is-active {
-  color: var(--text-h);
-  border-bottom-color: var(--brand-strong);
-}
-
 /* Título de sección dentro del buy-box. */
 .buybox__heading {
   margin: 0 0 0.5rem;
@@ -752,4 +725,62 @@
   .spec-table__row dd {
     text-align: left;
   }
+}
+/* Tramo de descuento que ya aplica a la cantidad elegida. */
+.pricing-card__discounts tr.is-active td {
+  font-weight: 700;
+  color: var(--text-h);
+  background: var(--success-bg);
+}
+
+/* Precio inválido o stock menor al pedido mínimo: no se puede comprar. */
+.pricing-card__error {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: var(--danger-bg);
+  color: var(--text-h);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* Invitación a iniciar sesión como empresa (solo visitantes). */
+.pricing-card__hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.pricing-card__hint a {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+/* Recuadro del administrador: ve ambos precios, pero no compra. */
+.pricing-card__admin {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border-left: 4px solid #08060d;
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-size: 0.85rem;
+  color: var(--text-h);
+}
+
+.pricing-card__admin p {
+  margin: 0.15rem 0;
+}
+
+.pricing-card__admin-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+}
+
+.pricing-card__admin-note {
+  color: var(--text);
+  font-size: 0.78rem;
 }

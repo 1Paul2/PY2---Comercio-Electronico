@@ -560,3 +560,34 @@ html:has(.cart-drawer[open]) {
     padding-inline: 1.25rem;
   }
 }
+
+/* ---- Precios por rol (proyecto 3) ---- */
+
+.cart-drawer__discount {
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.cart-drawer__conditions {
+  margin: 0.15rem 0;
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.cart-drawer__error {
+  margin: 0.2rem 0;
+  padding: 0.25rem 0.4rem;
+  border-left: 3px solid var(--danger);
+  background: var(--danger-bg);
+  color: var(--text-h);
+  font-size: 0.75rem;
+}
+
+.cart-drawer__quantity button[aria-disabled='true'] {
+  opacity: 0.45;
+}
+
+.cart-drawer__hint--error {
+  color: var(--danger);
+}

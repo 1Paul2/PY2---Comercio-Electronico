@@ -266,3 +266,33 @@
     font-size: 0.95rem;
   }
 }
+
+/* Etiqueta "B2B" junto al precio cuando el cliente compra con tarifa
+   mayorista. Mismos colores que la etiqueta de rol B2B del encabezado. */
+.product-card__price-type {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+/* Precio faltante o inválido: el producto no se puede comprar. */
+.product-card__price--invalid {
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+/* Condiciones B2B, por ejemplo "Pedido mínimo 3 · 5% desde 2 u.". */
+.product-card__conditions {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text);
+}

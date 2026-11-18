@@ -18,7 +18,7 @@ function ProductoDetalle() {
       <SearchHeader redirectSearchTo="/productos" />
 
       {/* Ficha de producto; recibe el id desde la URL. */}
-      <ProductDetail id={id} />
+      <ProductDetail key={id} id={id} />
 
       {/* Footer del sitio. */}
       <Footer />
