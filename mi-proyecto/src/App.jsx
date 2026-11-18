@@ -15,13 +15,13 @@ import Devoluciones from './pages/Devoluciones'
 import Envios from './pages/Envios'
 import PreguntasFrecuentes from './pages/PreguntasFrecuentes'
 import Login from './pages/Login'
-import Analytics from './pages/Analytics'
 import AccesoDenegado from './pages/AccesoDenegado'
 import MisOrdenes from './pages/MisOrdenes'
 import AdminInicio from './pages/admin/AdminInicio'
 import AdminOrdenes from './pages/admin/AdminOrdenes'
 import AdminProductos from './pages/admin/AdminProductos'
 import AdminInventario from './pages/admin/AdminInventario'
+import AdminMetricas from './pages/admin/AdminMetricas'
 import RequireRole from './components/RequireRole'
 import { PERMISSIONS } from './features/session/roles'
 import { ThemeProvider } from './context/ThemeContext'
@@ -93,15 +93,16 @@ function App() {
             path="/admin/inventario"
             element={<RequireRole permission={PERMISSIONS.VIEW_ADMIN_INFO}><AdminInventario /></RequireRole>}
           />
+          <Route
+            path="/admin/metricas"
+            element={<RequireRole permission={PERMISSIONS.VIEW_ADMIN_INFO}><AdminMetricas /></RequireRole>}
+          />
 
           {/* Aviso cuando el rol actual no puede entrar a una sección. */}
           <Route path="/acceso-denegado" element={<AccesoDenegado />} />
 
           {/* Inicio de sesión simulado con los usuarios del índice de Algolia. */}
           <Route path="/login" element={<Login />} />
-
-          {/* Métricas de uso (laboratorio 5). */}
-          <Route path="/analytics" element={<Analytics />} />
 
           {/* Páginas informativas: políticas de la tienda y preguntas
               frecuentes. Sus enlaces están en el footer (policyPages.js). */}

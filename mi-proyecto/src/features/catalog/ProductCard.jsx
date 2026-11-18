@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatCRC } from './format'
 import { useCart } from '../../context/useCart'
+import { applyAdminChanges } from '../admin/adminChanges'
 import { useSession } from '../../context/useSession'
 import { hasPermission, PERMISSIONS } from '../session/roles'
 import { formatB2BConditions, PRICE_TYPES } from '../pricing/pricing'
@@ -21,7 +22,11 @@ import '../../styles/ProductCard.css'
  *          hacia el detalle y un botón de "Agregar al carrito".
  * Excepciones: No hay.
  */
-function ProductCard({ hit }) {
+function ProductCard({ hit: rawHit }) {
+  // Las modificaciones simuladas del administrador (precio o inventario) se
+  // aplican sobre el producto del índice antes de mostrarlo y de agregarlo
+  // al carrito, para que el cambio se note en toda la tienda.
+  const hit = useMemo(() => applyAdminChanges(rawHit), [rawHit])
   const { addItem, items } = useCart()
   const { session } = useSession()
   const [justAdded, setJustAdded] = useState(false)

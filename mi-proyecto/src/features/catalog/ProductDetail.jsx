@@ -5,6 +5,7 @@ import { formatCRC, formatCRCParts, formatPercent } from './format'
 import RelatedProducts from './RelatedProducts'
 import RecentlyViewed from '../personalization/RecentlyViewed'
 import { useCart } from '../../context/useCart'
+import { applyAdminChanges } from '../admin/adminChanges'
 import { useSession } from '../../context/useSession'
 import { rememberProduct } from '../history/history'
 import { hasPermission, PERMISSIONS, ROLES } from '../session/roles'
@@ -96,7 +97,9 @@ function useProduct(id) {
       })
       .then((response) => {
         if (cancelled) return
-        const hit = response.results?.[0]?.hits?.[0]
+        // Se aplican las modificaciones simuladas del administrador antes de
+        // mostrar la ficha, igual que en el catálogo.
+        const hit = applyAdminChanges(response.results?.[0]?.hits?.[0])
         setResult({ id, status: hit ? 'found' : 'not-found', product: hit || null })
       })
       .catch(() => {
