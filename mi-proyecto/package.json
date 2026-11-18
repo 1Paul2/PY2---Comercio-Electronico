@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist",
     "seed-algolia": "node scripts/seed-algolia.mjs",
     "seed-users": "node scripts/seed-users.mjs",
+    "seed-orders": "node scripts/seed-orders.mjs",
     "generate-products": "node scripts/normalize-and-expand-products.mjs"
   },
   "dependencies": {

@@ -598,6 +598,40 @@ function Confirmacion() {
                   <dt>Fecha de compra</dt>
                   <dd>{formattedDate}</dd>
                 </div>
+                {/* Proyecto 3: rol, empresa, sucursal y condiciones comerciales. */}
+                <div className="confirmation-details__row">
+                  <dt>Cliente</dt>
+                  <dd>
+                    {order.customer?.name ?? order.buyer.fullName}
+                    {order.customer?.roleLabel ? ` · ${order.customer.roleLabel}` : ''}
+                  </dd>
+                </div>
+                {order.customer?.company && (
+                  <div className="confirmation-details__row">
+                    <dt>Empresa</dt>
+                    <dd>
+                      {order.customer.company.name}
+                      {order.customer.company.legalId ? ` · Cédula ${order.customer.company.legalId}` : ''}
+                    </dd>
+                  </div>
+                )}
+                <div className="confirmation-details__row">
+                  <dt>Sucursal</dt>
+                  <dd>{order.branch?.name ?? '—'}</dd>
+                </div>
+                {order.commercialConditions && (
+                  <div className="confirmation-details__row">
+                    <dt>Condiciones</dt>
+                    <dd>
+                      <strong>{order.commercialConditions.label}</strong>
+                      <ul className="confirmation-conditions">
+                        {order.commercialConditions.rules.map((rule) => (
+                          <li key={rule}>{rule}</li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )}
                 <div className="confirmation-details__row">
                   <dt>Estado de la orden</dt>
                   <dd>
@@ -742,6 +776,10 @@ function Confirmacion() {
                     <p className="checkout-summary__item-name">{item.name}</p>
                     <p className="checkout-summary__item-meta">
                       Cant: {item.quantity} × {formatCRC(item.unitPrice)}
+                      {item.priceType ? ` · ${item.priceType}` : ''}
+                      {item.discountPct > 0
+                        ? ` · −${Math.round(item.discountPct * 100)}% (lista ${formatCRC(item.listPrice)})`
+                        : ''}
                     </p>
                   </div>
                   <strong className="checkout-summary__item-subtotal">
