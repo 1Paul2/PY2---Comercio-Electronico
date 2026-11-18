@@ -85,6 +85,14 @@ function PurchaseReceipt({ order }) {
           <dd>Tarjeta (Pasarela Sandbox)</dd>
         </div>
         <div>
+          <dt>Sucursal</dt>
+          <dd>{order.branch?.name ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>Tipo de cliente</dt>
+          <dd>{order.customer?.roleLabel ?? '—'}</dd>
+        </div>
+        <div>
           <dt>ID de transacción</dt>
           <dd className="receipt__mono">{payment?.transactionId ?? '—'}</dd>
         </div>
@@ -94,6 +102,12 @@ function PurchaseReceipt({ order }) {
         <div>
           <h2 className="receipt__label">Cliente</h2>
           <p className="receipt__strong">{buyer.fullName}</p>
+          {order.customer?.company && (
+            <p>
+              {order.customer.company.name}
+              {order.customer.company.legalId ? ` · Cédula ${order.customer.company.legalId}` : ''}
+            </p>
+          )}
           <p>{buyer.email}</p>
           <p>{buyer.phone}</p>
         </div>
@@ -124,6 +138,12 @@ function PurchaseReceipt({ order }) {
               <td>
                 <span className="receipt__strong">{item.name}</span>
                 <span className="receipt__sku">Código: {item.id}</span>
+                {item.discountPct > 0 && (
+                  <span className="receipt__sku">
+                    Precio de lista {formatCRC(item.listPrice)} · descuento por volumen{' '}
+                    {Math.round(item.discountPct * 100)}%
+                  </span>
+                )}
               </td>
               <td className="receipt__num">{item.quantity}</td>
               <td className="receipt__num">{formatCRC(item.unitPrice)}</td>
@@ -171,6 +191,11 @@ function PurchaseReceipt({ order }) {
           {STORE.email} indicando el número de orden {order.orderNumber}.
         </p>
         {/* Las órdenes anteriores al registro de la aceptación no lo traen. */}
+        {order.commercialConditions && (
+          <p>
+            {order.commercialConditions.label}: {order.commercialConditions.rules.join(' ')}
+          </p>
+        )}
         {order.termsAcceptance?.accepted && (
           <p>
             Términos y condiciones de compra aceptados por el cliente el{' '}
