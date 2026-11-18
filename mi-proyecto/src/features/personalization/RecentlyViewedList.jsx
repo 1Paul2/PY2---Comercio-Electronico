@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { formatCRC } from '../catalog/format'
 import { removeProduct } from '../history/history'
 import { usePersonalHistory } from './usePersonalHistory'
+import { useSession } from '../../context/useSession'
+import { getBasePrice } from '../pricing/pricing'
 import { useProductsByIds } from './productQueries'
 import '../../styles/Personalization.css'
 
@@ -24,6 +26,7 @@ const MAX_ITEMS = 10
  */
 function RecentlyViewedList({ title = 'Seguí donde lo dejaste', subtitle, className = '' }) {
   const { history } = usePersonalHistory()
+  const { session } = useSession()
   const products = history?.products
   const [expanded, setExpanded] = useState(false)
 
@@ -56,7 +59,7 @@ function RecentlyViewedList({ title = 'Seguí donde lo dejaste', subtitle, class
               <span className="viewed-item__info">
                 <span className="viewed-item__category">{hit.category_facet}</span>
                 <span className="viewed-item__title">{hit.title}</span>
-                <span className="viewed-item__price">{formatCRC(hit.pricing?.b2c?.price_crc)}</span>
+                <span className="viewed-item__price">{formatCRC(getBasePrice(hit, session?.role))}</span>
               </span>
             </Link>
             <button
