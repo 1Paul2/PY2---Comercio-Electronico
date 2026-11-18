@@ -40,7 +40,6 @@ function Footer() {
               <li><Link to="/admin">› Panel administrativo</Link></li>
             )}
             <li><Link to="/login">› {session ? 'Mi sesión' : 'Iniciar sesión'}</Link></li>
-            <li><Link to="/analytics">› Métricas de uso</Link></li>
           </ul>
         </div>
 

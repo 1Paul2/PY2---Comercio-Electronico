@@ -1,9 +1,5 @@
 import { useMemo, useState } from 'react'
-import { InstantSearch } from 'react-instantsearch'
 import { Link } from 'react-router-dom'
-import { searchClient } from '../features/catalog/searchClient'
-import SearchHeader from '../features/catalog/SearchHeader'
-import Footer from '../components/Footer'
 import { formatCRC } from '../features/catalog/format'
 import { useSession } from '../context/useSession'
 import { computeMetrics, describeEvent, filterEvents, getEventLabel } from '../features/analytics/metrics'
@@ -85,8 +81,8 @@ function TopList({ title, items, emptyText, unit }) {
 }
 
 /**
- * Nombre: Analytics
- * Descripción: Sección de métricas de uso de la tienda (laboratorio 5,
+ * Nombre: AnalyticsPanel
+ * Descripción: Contenido de la sección de métricas (laboratorio 5,
  *              requerimiento D). Lee los eventos que se registraron durante
  *              la navegación y muestra las cuatro métricas pedidas, el
  *              embudo de conversión, los listados más frecuentes, la
@@ -98,7 +94,7 @@ function TopList({ title, items, emptyText, unit }) {
  * Salidas: JSX con la página completa.
  * Excepciones: No hay; computeMetrics nunca lanza.
  */
-function Analytics() {
+export function AnalyticsPanel() {
   const { session } = useSession()
   // Con sesión activa se puede separar "toda la actividad" de "la mía".
   const [soloMiActividad, setSoloMiActividad] = useState(false)
@@ -114,8 +110,6 @@ function Analytics() {
   const sinDatos = metrics.totalEvents === 0
 
   return (
-    <InstantSearch searchClient={searchClient} indexName="grupo-07_products">
-      <SearchHeader redirectSearchTo="/productos" />
 
       <main className="analytics-page">
         <header className="analytics-page__header">
@@ -294,10 +288,6 @@ function Analytics() {
           </>
         )}
       </main>
-
-      <Footer />
-    </InstantSearch>
   )
 }
 
-export default Analytics
