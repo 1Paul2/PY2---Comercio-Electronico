@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../context/useCart'
+import { useSession } from '../context/useSession'
 import { formatCRC } from '../features/catalog/format'
 import { PROVINCES, CANTONS_BY_PROVINCE } from '../features/checkout/costaRicaLocations'
 import {
@@ -26,6 +27,9 @@ import { applyPaymentResult } from '../features/orders/applyPaymentResult'
 import { PAYMENT_RESULT } from '../features/payment/paymentContract'
 import DevScenarioPanel from '../components/DevScenarioPanel'
 import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
+import { AVAILABILITY_STATUS, BRANCHES, checkBranchAvailability, getBranch } from '../features/inventory/branches'
+import { formatB2BConditions, PRICE_TYPES } from '../features/pricing/pricing'
+import { ROLE_INFO } from '../features/session/roles'
 import '../styles/Checkout.css'
 
 /* ============================================================
@@ -272,6 +276,105 @@ function Field({ id, label, error, required = false, children }) {
         <p id={`${id}-error`} className="checkout-field__error" role="alert">
           <IconAlertTriangle size={14} aria-hidden="true" /> {error}
         </p>
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
+   Sucursal y disponibilidad (proyecto 3)
+   ============================================================ */
+
+const BRANCH_STORAGE_KEY = 'maquinaria-cr-checkout-branch'
+
+/**
+ * Nombre: readSavedBranch
+ * Descripción: Recupera la última sucursal elegida en este navegador.
+ * Salidas: id de sucursal válido o '' si no hay.
+ */
+function readSavedBranch() {
+  try {
+    const saved = localStorage.getItem(BRANCH_STORAGE_KEY)
+    return getBranch(saved) ? saved : ''
+  } catch {
+    return ''
+  }
+}
+
+const AVAILABILITY_LABELS = {
+  [AVAILABILITY_STATUS.OK]: 'Disponible',
+  [AVAILABILITY_STATUS.INSUFFICIENT]: 'Stock insuficiente',
+  [AVAILABILITY_STATUS.UNAVAILABLE]: 'No disponible en esta sucursal',
+}
+
+/**
+ * Nombre: BranchSelector
+ * Descripción: Permite elegir la sucursal de retiro o despacho y muestra,
+ *              para la sucursal elegida, cuántas unidades hay de cada
+ *              producto frente a las que se piden. Si se pide más de lo que
+ *              hay o la sucursal no tiene el producto, lo explica.
+ * Entradas: items: productos seleccionados; branchId: sucursal elegida;
+ *           onChange(id): cambia la sucursal; error: mensaje si falta elegir.
+ * Salidas: JSX.
+ * Excepciones: No hay.
+ */
+function BranchSelector({ items, branchId, onChange, error }) {
+  const availability = branchId ? checkBranchAvailability(items, branchId) : null
+
+  return (
+    <div className="checkout-branch">
+      <div className="checkout-branch__options" role="radiogroup" aria-label="Sucursal" aria-invalid={Boolean(error)}>
+        {BRANCHES.map((branch) => {
+          const summary = checkBranchAvailability(items, branch.id)
+          const isSelected = branch.id === branchId
+          return (
+            <label
+              key={branch.id}
+              className={`checkout-branch__option${isSelected ? ' is-selected' : ''}${summary.allAvailable ? '' : ' has-issues'}`}
+            >
+              <input
+                type="radio"
+                name="branch"
+                id={`branch-${branch.id}`}
+                aria-label={`${branch.name}: ${summary.availableCount} de ${items.length} disponibles`}
+                value={branch.id}
+                checked={isSelected}
+                onChange={() => onChange(branch.id)}
+              />
+              <span className="checkout-branch__name">{branch.name}</span>
+              <span className="checkout-branch__address">{branch.address}</span>
+              <span className={`checkout-branch__count${summary.allAvailable ? ' is-ok' : ''}`}>
+                {summary.availableCount} de {items.length} {items.length === 1 ? 'producto disponible' : 'productos disponibles'}
+              </span>
+            </label>
+          )
+        })}
+      </div>
+
+      {error && (
+        <p id="branch-error" className="checkout-field__error" role="alert">
+          <IconAlertTriangle size={14} aria-hidden="true" /> {error}
+        </p>
+      )}
+
+      {availability && (
+        <div className="checkout-branch__availability">
+          <h3 className="checkout-branch__title">
+            Sucursal seleccionada: <strong>{getBranch(branchId).name}</strong>
+          </h3>
+          <ul className="checkout-branch__list">
+            {availability.lines.map((line) => (
+              <li key={line.id} className={`checkout-branch__line checkout-branch__line--${line.status}`}>
+                <span className="checkout-branch__product">{line.name}</span>
+                <span className="checkout-branch__numbers">
+                  Disponible: {line.available} {line.available === 1 ? 'unidad' : 'unidades'} · Cantidad: {line.requested}
+                </span>
+                <span className="checkout-branch__status">{AVAILABILITY_LABELS[line.status]}</span>
+                {line.message && <p className="checkout-branch__message">{line.message}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   )
@@ -559,6 +662,7 @@ function PaymentForm({ values, errors, touched, onChange, onBlur }) {
 function ReviewItems() {
   // Solo los productos seleccionados en el carrito forman parte de la compra.
   const { selectedItems: items, subtotal, iva, shippingCost, total } = useCart()
+  const isB2B = items[0]?.priceType === PRICE_TYPES.B2B
 
   return (
     <div className="checkout-review__group">
@@ -567,6 +671,9 @@ function ReviewItems() {
           <IconPackage size={12} strokeWidth={2.5} />
         </span>
         Productos ({items.length})
+        <span className={`checkout-price-tag checkout-price-tag--${isB2B ? 'b2b' : 'b2c'}`}>
+          {isB2B ? 'Precio B2B' : 'Precio B2C'}
+        </span>
       </h3>
 
       <table className="checkout-review__table">
@@ -581,10 +688,23 @@ function ReviewItems() {
         <tbody>
           {items.map((item) => (
             <tr key={item.id}>
-              <th scope="row" data-label="Producto">{item.name}</th>
+              <th scope="row" data-label="Producto">
+                {item.name}
+                {isB2B && formatB2BConditions(item.minQuantity, item.volumeDiscounts) && (
+                  <span className="checkout-review__conditions">
+                    {formatB2BConditions(item.minQuantity, item.volumeDiscounts)}
+                  </span>
+                )}
+              </th>
               <td data-label="Cantidad">{item.quantity}</td>
-              <td data-label="Precio unitario">{formatCRC(item.price)}</td>
-              <td data-label="Subtotal">{formatCRC(item.price * item.quantity)}</td>
+              <td data-label="Precio unitario">
+                {item.discountPct > 0 && <s className="checkout-review__list-price">{formatCRC(item.basePrice)}</s>}{' '}
+                {formatCRC(item.unitPrice)}
+                {item.discountPct > 0 && (
+                  <span className="checkout-review__discount">−{Math.round(item.discountPct * 100)}%</span>
+                )}
+              </td>
+              <td data-label="Subtotal">{formatCRC(item.unitPrice * item.quantity)}</td>
             </tr>
           ))}
         </tbody>
@@ -612,11 +732,44 @@ function ReviewItems() {
   )
 }
 
-function ReviewBlock({ buyer, delivery, payment, buyerIsValid, deliveryIsValid, paymentIsValid }) {
+function ReviewBlock({ session, branchId, buyer, delivery, payment, buyerIsValid, deliveryIsValid, paymentIsValid }) {
   const card = paymentIsValid ? maskCard(payment.cardNumber) : null
+  const branch = getBranch(branchId)
   return (
     <div className="checkout-review">
       <ReviewItems />
+
+      <div className="checkout-review__group">
+        <h3 className="checkout-review__group-title">
+          <span className="checkout-review__icon" aria-hidden="true">
+            <IconUser size={12} strokeWidth={2.5} />
+          </span>
+          Cliente y sucursal
+        </h3>
+        <dl className="checkout-review__list">
+          <div className="checkout-review__row">
+            <dt>Usuario</dt>
+            <dd>{session?.name ?? '—'}</dd>
+          </div>
+          <div className="checkout-review__row">
+            <dt>Tipo de cliente</dt>
+            <dd>{ROLE_INFO[session?.role]?.label ?? '—'}</dd>
+          </div>
+          {session?.company && (
+            <div className="checkout-review__row">
+              <dt>Empresa</dt>
+              <dd>
+                {session.company.name}
+                {session.company.legalId ? ` · Cédula ${session.company.legalId}` : ''}
+              </dd>
+            </div>
+          )}
+          <div className="checkout-review__row">
+            <dt>Sucursal</dt>
+            <dd>{branch ? branch.name : 'Sin elegir'}</dd>
+          </div>
+        </dl>
+      </div>
 
       <div className="checkout-review__group">
         <h3 className="checkout-review__group-title">
@@ -717,6 +870,8 @@ function ReviewBlock({ buyer, delivery, payment, buyerIsValid, deliveryIsValid, 
 }
 
 function CheckoutSummaryPanel({
+  branchId,
+  purchaseIssues,
   canConfirm,
   onConfirm,
   processing,
@@ -751,15 +906,21 @@ function CheckoutSummaryPanel({
               <div className="checkout-summary__item-info">
                 <p className="checkout-summary__item-name">{item.name}</p>
                 <p className="checkout-summary__item-meta">
-                  Cant: {item.quantity} × {formatCRC(item.price)}
+                  Cant: {item.quantity} × {formatCRC(item.unitPrice)}
+                  {item.priceType === PRICE_TYPES.B2B ? ' · B2B' : ''}
                 </p>
               </div>
               <strong className="checkout-summary__item-subtotal">
-                {formatCRC(item.price * item.quantity)}
+                {formatCRC(item.unitPrice * item.quantity)}
               </strong>
             </li>
           ))}
         </ul>
+
+        <p className="checkout-summary__branch">
+          <IconMapPin size={14} aria-hidden="true" /> Sucursal:{' '}
+          <strong>{getBranch(branchId)?.name ?? 'sin elegir'}</strong>
+        </p>
 
         <div className="checkout-summary__totals">
           <div className="checkout-summary__row">
@@ -779,6 +940,19 @@ function CheckoutSummaryPanel({
             <strong>{formatCRC(total)}</strong>
           </div>
         </div>
+
+        {purchaseIssues.length > 0 && (
+          <div className="checkout-summary__issues" role="alert">
+            <p>
+              <IconAlertTriangle size={14} aria-hidden="true" /> No se puede completar la compra todavía:
+            </p>
+            <ul>
+              {purchaseIssues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {submitAttempted && !canConfirm && missingCount > 0 && (
           <p className="checkout-summary__notice" role="alert">
@@ -871,7 +1045,17 @@ const TERMS_REQUIRED_MESSAGE = 'Debes aceptar los términos y condiciones para c
 function Checkout() {
   // `items` son solo los productos seleccionados para esta compra; `cartItems`
   // es el carrito completo (para distinguir "carrito vacío" de "nada elegido").
-  const { selectedItems: items, items: cartItems, subtotal, iva, shippingCost, total, removeItems } = useCart()
+  const {
+    selectedItems: items,
+    items: cartItems,
+    subtotal,
+    iva,
+    shippingCost,
+    total,
+    removeItems,
+    selectedErrors,
+  } = useCart()
+  const { session } = useSession()
   const submittingRef = useRef(false)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -907,6 +1091,8 @@ function Checkout() {
   const [submitError, setSubmitError] = useState(null)
   // La aceptación no se guarda en el borrador: se pide en cada compra.
   const [termsAccepted, setTermsAccepted] = useState(false)
+  // Sucursal de retiro o despacho; se recuerda para la próxima compra.
+  const [branchId, setBranchId] = useState(readSavedBranch)
 
   // Si el usuario intenta recargar o cerrar mientras se paga, se le advierte.
   useWarnBeforeLeave(processing)
@@ -932,6 +1118,16 @@ function Checkout() {
   const deliveryIsValid = Object.keys(deliveryErrors).length === 0
   const paymentIsValid = Object.keys(paymentErrors).length === 0
   const canConfirm = buyerIsValid && deliveryIsValid && paymentIsValid && !processing
+
+  // Validaciones del proyecto 3 que impiden pagar: sucursal elegida, stock
+  // suficiente en esa sucursal, precios válidos y pedido mínimo B2B (las dos
+  // últimas ya se revisan en el carrito y aquí se repiten antes de pagar).
+  const branchAvailability = useMemo(
+    () => (branchId ? checkBranchAvailability(items, branchId) : null),
+    [items, branchId]
+  )
+  const branchError = submitAttempted && !branchId ? 'Elige la sucursal de retiro o despacho.' : null
+  const purchaseIssues = [...selectedErrors, ...(branchAvailability?.errors ?? [])]
 
   const missingCount =
     Object.keys(buyerErrors).length + Object.keys(deliveryErrors).length + Object.keys(paymentErrors).length
@@ -960,6 +1156,28 @@ function Checkout() {
       }
       return { ...prev, [field]: value }
     })
+  }
+
+  function handleBranchChange(id) {
+    setBranchId(id)
+    setSubmitError(null)
+    try {
+      localStorage.setItem(BRANCH_STORAGE_KEY, id)
+    } catch {
+      // Sin localStorage solo se pierde el recordatorio de la sucursal.
+    }
+  }
+
+  /**
+   * Nombre: scrollToElement
+   * Descripción: Lleva la vista y el foco a un elemento por id.
+   */
+  function scrollToElement(id) {
+    const element = document.getElementById(id)
+    if (element) {
+      element.focus({ preventScroll: true })
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
   }
 
   function handlePaymentChange(field, value) {
@@ -1033,6 +1251,18 @@ function Checkout() {
       return
     }
 
+    // Sucursal, stock, precio y mínimo B2B: si algo falla no se paga.
+    if (!branchId) {
+      setSubmitError('Elige la sucursal de retiro o despacho para continuar.')
+      scrollToElement(`branch-${BRANCHES[0].id}`)
+      return
+    }
+    if (purchaseIssues.length > 0) {
+      setSubmitError(purchaseIssues[0])
+      scrollToElement(`branch-${branchId}`)
+      return
+    }
+
     // Con los datos completos, lo único que falta es aceptar los términos.
     if (!termsAccepted) {
       const checkbox = document.getElementById('termsAccepted')
@@ -1052,25 +1282,27 @@ function Checkout() {
       const orderNumber = generateUniqueOrderNumber()
       order = buildOrder({
         orderNumber,
+        // Usuario, rol y empresa de la sesión; sucursal elegida.
+        session,
+        branchId,
         // La orden guarda el nombre completo (nombre + apellidos) como pide
         // el enunciado; el formulario los pide por separado.
         buyer: { fullName: buildFullName(buyer), email: buyer.email, phone: buyer.phone },
         delivery,
-        items: items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          image: item.image,
-          price: item.price,
-          quantity: item.quantity,
-        })),
+        // buildOrder repite las validaciones de precio, mínimo B2B y stock.
+        items,
         totals: { subtotal, iva, shippingCost, total },
         // Queda registrado que el cliente aceptó los términos y cuál versión.
         termsAcceptance: { accepted: termsAccepted, version: TERMS_VERSION },
         // Solo marca y últimos 4 dígitos; el número completo y el CVV no se guardan.
         paymentMethod: maskCard(payment.cardNumber),
       })
-    } catch {
-      finishWithError('Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.')
+    } catch (error) {
+      finishWithError(
+        error?.message
+          ? `No se pudo preparar tu compra: ${error.message}.`
+          : 'Hubo un problema al preparar tu compra. Revisa los datos e inténtalo de nuevo.'
+      )
       return
     }
 
@@ -1099,6 +1331,8 @@ function Checkout() {
       trackEvent(EVENT_TYPES.PURCHASE, {
         orderNumber: order.orderNumber,
         total: order.total,
+        priceType: order.priceType,
+        branch: order.branch.name,
         itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
         items: order.items.map((item) => ({
           productId: item.id,
@@ -1198,6 +1432,14 @@ function Checkout() {
 
           <CheckoutSection
             number={2}
+            title="Sucursal de retiro o despacho"
+            description="Elige la sucursal; revisamos que tenga las unidades que pides."
+          >
+            <BranchSelector items={items} branchId={branchId} onChange={handleBranchChange} error={branchError} />
+          </CheckoutSection>
+
+          <CheckoutSection
+            number={3}
             title="Información de entrega"
             description="Indícanos dónde quieres recibir tu pedido."
           >
@@ -1211,7 +1453,7 @@ function Checkout() {
           </CheckoutSection>
 
           <CheckoutSection
-            number={3}
+            number={4}
             title="Método de pago"
             description="Tarjeta de crédito o débito."
           >
@@ -1225,11 +1467,13 @@ function Checkout() {
           </CheckoutSection>
 
           <CheckoutSection
-            number={4}
+            number={5}
             title="Revisión final"
             description="Revisa que todo esté correcto antes de confirmar el pago."
           >
             <ReviewBlock
+              session={session}
+              branchId={branchId}
               buyer={buyer}
               delivery={delivery}
               payment={payment}
@@ -1241,6 +1485,8 @@ function Checkout() {
         </fieldset>
 
         <CheckoutSummaryPanel
+          branchId={branchId}
+          purchaseIssues={purchaseIssues}
           canConfirm={canConfirm}
           onConfirm={handleConfirm}
           processing={processing}

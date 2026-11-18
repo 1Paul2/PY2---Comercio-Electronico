@@ -1289,3 +1289,228 @@
     margin-top: 2rem !important;
   }
 }
+/* ============================================================
+   Sucursal, disponibilidad y precios por rol (proyecto 3)
+   ============================================================ */
+
+.checkout-branch__options {
+  display: grid;
+  gap: 0.6rem;
+}
+
+@media (min-width: 640px) {
+  .checkout-branch__options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Cada sucursal es una tarjeta que contiene su radio. */
+.checkout-branch__option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkout-branch__option input {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  accent-color: var(--brand-strong);
+}
+
+.checkout-branch__option:focus-within {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+.checkout-branch__option.is-selected {
+  border-color: var(--brand-strong);
+  box-shadow: var(--shadow);
+}
+
+.checkout-branch__name {
+  padding-right: 1.5rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.checkout-branch__address {
+  font-size: 0.78rem;
+  color: var(--text);
+}
+
+.checkout-branch__count {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--warning);
+}
+
+.checkout-branch__count.is-ok {
+  color: var(--success);
+}
+
+.checkout-branch__availability {
+  margin-top: 1rem;
+}
+
+.checkout-branch__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.checkout-branch__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Línea de disponibilidad: producto, números y estado. */
+.checkout-branch__line {
+  display: grid;
+  gap: 0.15rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-left: 4px solid var(--success);
+  border-radius: 6px;
+  background: var(--code-bg);
+}
+
+@media (min-width: 640px) {
+  .checkout-branch__line {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+.checkout-branch__line--insufficient {
+  border-left-color: var(--warning);
+  background: var(--warning-bg);
+}
+
+.checkout-branch__line--unavailable {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.checkout-branch__product {
+  font-weight: 600;
+  color: var(--text-h);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.checkout-branch__numbers {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.checkout-branch__status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.checkout-branch__message {
+  grid-column: 1 / -1;
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-h);
+}
+
+/* Etiqueta del tipo de precio en la revisión final. */
+.checkout-price-tag {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.checkout-price-tag--b2c {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.checkout-price-tag--b2b {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.checkout-review__conditions {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.checkout-review__list-price {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.checkout-review__discount {
+  margin-left: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--success);
+}
+
+/* Sucursal en el panel de resumen. */
+.checkout-summary__branch {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.checkout-summary__branch strong {
+  color: var(--text-h);
+}
+
+/* Lo que impide pagar: sucursal sin stock, precio inválido o mínimo B2B. */
+.checkout-summary__issues {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: var(--danger-bg);
+  color: var(--text-h);
+  font-size: 0.8rem;
+}
+
+.checkout-summary__issues p {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.3rem;
+  font-weight: 700;
+}
+
+.checkout-summary__issues ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+/* Condiciones comerciales de la orden (proyecto 3). */
+.confirmation-conditions {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
