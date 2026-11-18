@@ -26,6 +26,7 @@ import RequireRole from './components/RequireRole'
 import { PERMISSIONS } from './features/session/roles'
 import { ThemeProvider } from './context/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
+import CartNotice from './components/CartNotice'
 
 /* Componente App: envuelve las rutas con ThemeProvider y define las rutas
    de la aplicación, incluida la comodín que atiende las URL desconocidas. */
@@ -115,6 +116,8 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </ErrorBoundary>
+      {/* Avisos del carrito (mínimo B2B, stock, cambio de usuario). */}
+      <CartNotice />
     </ThemeProvider>
   )
 }
