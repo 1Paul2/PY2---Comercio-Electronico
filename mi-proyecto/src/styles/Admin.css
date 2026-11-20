@@ -409,7 +409,9 @@
   background: var(--admin-surface-2);
 }
 
-.admin-table__num {
+/* Correccion -  las columnas numericas quedaban alineadas a la izquierda
+   porque ".admin-table th/td" tenia mas especificidad que ".admin-table__num". */
+.admin-table .admin-table__num {
   text-align: right;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
