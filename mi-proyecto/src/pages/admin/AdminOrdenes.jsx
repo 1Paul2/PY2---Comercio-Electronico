@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 import { listAllOrders } from '../../features/orders/ordersIndex'
+import { listOrders as listLocalOrders } from '../../features/orders/orderStorage'
 import {
   ORDER_STATUS,
   PAYMENT_STATUS,
@@ -153,6 +154,28 @@ function DetalleOrden({ order }) {
 }
 
 /**
+ * Nombre: descargarOrdenesLocales
+ * Descripción: Descarga en un archivo JSON las órdenes generadas en este
+ *              navegador. Ese archivo se sube al índice de órdenes de Algolia
+ *              con `npm run upload-orders -- <archivo>`, que usa la llave de
+ *              administración del .env (la llave nunca llega al navegador).
+ * Entradas: No recibe parámetros.
+ * Salidas: cantidad de órdenes exportadas.
+ */
+function descargarOrdenesLocales() {
+  const ordenes = listLocalOrders()
+  if (ordenes.length === 0) return 0
+  const fecha = new Date().toISOString().slice(0, 10)
+  const archivo = new Blob([JSON.stringify(ordenes, null, 2)], { type: 'application/json' })
+  const enlace = document.createElement('a')
+  enlace.href = URL.createObjectURL(archivo)
+  enlace.download = `ordenes-${fecha}.json`
+  enlace.click()
+  URL.revokeObjectURL(enlace.href)
+  return ordenes.length
+}
+
+/**
  * Nombre: AdminOrdenes
  * Descripción: Consulta de todas las órdenes generadas (proyecto 3, panel
  *              administrativo). Junta las órdenes del índice de Algolia con
@@ -171,6 +194,7 @@ function AdminOrdenes() {
   const [filtroPago, setFiltroPago] = useState(TODOS)
   const [texto, setTexto] = useState('')
   const [abierta, setAbierta] = useState(null)
+  const [mensaje, setMensaje] = useState(null)
 
   useEffect(() => {
     let cancelado = false
@@ -211,6 +235,19 @@ function AdminOrdenes() {
   }
 
   const hayFiltros = filtroRol !== TODOS || filtroOrden !== TODOS || filtroPago !== TODOS || texto !== ''
+  const ordenesLocales = datos.orders.filter((o) => o.source === 'local').length
+
+  const exportar = () => {
+    const cantidad = descargarOrdenesLocales()
+    setMensaje(
+      cantidad > 0
+        ? {
+            tipo: 'ok',
+            texto: `${cantidad === 1 ? 'Se descargó 1 orden' : `Se descargaron ${cantidad} órdenes`} de este navegador. Para subirlas al índice de órdenes de Algolia ejecuta: npm run upload-orders -- <ruta del archivo>.`,
+          }
+        : { tipo: 'info', texto: 'No hay órdenes generadas en este navegador para exportar.' }
+    )
+  }
 
   return (
     <AdminLayout
@@ -221,6 +258,11 @@ function AdminOrdenes() {
         <p className="admin-message admin-message--error" role="alert">
           No pudimos consultar el índice de órdenes en Algolia. Se muestran únicamente las
           órdenes generadas en este navegador.
+        </p>
+      )}
+      {mensaje && (
+        <p className={`admin-message admin-message--${mensaje.tipo}`} role="status">
+          {mensaje.texto}
         </p>
       )}
 
@@ -301,6 +343,16 @@ function AdminOrdenes() {
             disabled={!hayFiltros}
           >
             Limpiar filtros
+          </button>
+
+          <button
+            type="button"
+            className="admin-button"
+            onClick={exportar}
+            disabled={ordenesLocales === 0}
+            title="Descarga las órdenes generadas en este navegador para subirlas al índice de Algolia"
+          >
+            Exportar órdenes de este navegador ({ordenesLocales})
           </button>
         </div>
 
