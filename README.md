@@ -4,6 +4,337 @@ Catálogo, carrito y proceso de compra de maquinaria pesada y repuestos. Proyect
 
 Construido con React 19, Vite, React Router (HashRouter) y Algolia para la búsqueda instantánea.
 
+| Recurso | Enlace |
+|---|---|
+| Repositorio | https://github.com/1Paul2/PY2---Comercio-Electronico |
+| Aplicación desplegada | https://1paul2.github.io/PY2---Comercio-Electronico/ |
+| Índices de Algolia | `grupo-07_products` (330 productos), `grupo-07_users` (6 usuarios), `grupo-07_orders` (órdenes) |
+
+---
+
+## Proyecto III: entorno B2B, roles, precios e inventario
+
+Esta sección documenta lo que pide el enunciado del Proyecto III. La tienda
+sigue haciendo todo lo de los proyectos anteriores (catálogo, búsqueda,
+carrito, checkout con pago Sandbox, historial y personalización) y agrega una
+capa empresarial: usuarios con rol, precios y condiciones B2B, inventario por
+sucursal, órdenes consultables y un panel administrativo.
+
+### Arquitectura
+
+| Pieza | Responsabilidad |
+|---|---|
+| **Algolia `grupo-07_products`** | Catálogo. Cada producto trae `pricing.b2c` (precio público), `pricing.b2b` (precio mayorista, pedido mínimo y descuentos por volumen) y `locations` (existencias por sucursal). Se consulta con la llave de solo búsqueda. |
+| **Algolia `grupo-07_users`** | Usuarios iniciales y su rol. Es la fuente del inicio de sesión simulado: solo entra quien está en este índice y tiene un rol válido. Se carga con `npm run seed-users`. |
+| **Algolia `grupo-07_orders`** | Índice especializado de órdenes. Lo leen "Mis órdenes" y el panel (filtrado por `customer.userId` o por `orderNumber`). Se carga con `npm run seed-orders` (órdenes de ejemplo) y `npm run upload-orders` (órdenes generadas en la tienda). |
+| **localStorage** | Persistencia local del navegador: sesión activa (`ecom_session`), carrito, órdenes generadas en el checkout (`maquinaria-cr-orders-v1`), sucursal elegida, cambios administrativos simulados (`maquinaria-cr-admin-changes-v1`), eventos e historial. |
+
+**Por qué la app no escribe en Algolia.** Escribir en un índice exige la llave
+de administración. Si la app la usara, quedaría dentro del paquete que
+descarga cualquier visitante y cualquiera podría borrar o alterar los índices.
+Por eso el navegador solo **lee** Algolia (llave de solo búsqueda) y las
+escrituras se hacen con scripts de Node que leen la llave de `mi-proyecto/.env`
+(no versionado):
+
+1. Cada compra genera la orden y la guarda en `localStorage`.
+2. "Mis órdenes" y el panel juntan esas órdenes con las del índice
+   `grupo-07_orders`; si un número de orden está en ambos, gana la copia local
+   (es la más reciente).
+3. Para llevar las órdenes nuevas al índice, el administrador pulsa
+   **Exportar órdenes de este navegador** en *Panel → Órdenes* y ejecuta
+   `npm run upload-orders -- ordenes-AAAA-MM-DD.json`. El script valida cada
+   orden, usa el número de orden como `objectID` (subirla dos veces la
+   actualiza, no la duplica) y no borra las demás órdenes del índice.
+
+Si Algolia no responde, las pantallas lo avisan y muestran al menos las
+órdenes guardadas en el navegador.
+
+### Usuarios y roles
+
+**Usuarios disponibles** (índice `grupo-07_users`, archivo `mi-proyecto/data/users/users.json`):
+
+| Usuario | Correo | Rol | Empresa |
+|---|---|---|---|
+| Ana Mora Solís | ana.mora@correo.cr | B2C | — |
+| José Pablo Quesada | jp.quesada@correo.cr | B2C | — |
+| Carlos Vargas Rojas | compras@constructoratica.cr | B2B | Constructora Tica S.A. (3-101-456789) |
+| Daniela Chaves Ureña | proveeduria@agrovalle.cr | B2B | Agroindustrial del Valle S.A. (3-101-778812) |
+| Laura Jiménez Castro | admin@maquinariacr.com | ADMIN | — |
+| Pedro Ruiz Arias | pedro.ruiz@correo.cr | `INVITADO` (inválido) | — |
+
+Pedro existe a propósito para probar el caso "usuario sin rol válido": está en
+el índice, pero su rol no es B2C, B2B ni ADMIN y la app no le permite entrar.
+
+**Inicio de sesión simulado.** En `/login` se elige un usuario de la lista
+(cargada desde Algolia) o se escribe su correo. No hay contraseñas ni registro
+de cuentas. Al entrar se guarda la sesión en `ecom_session` con el id, nombre,
+correo, rol y empresa. El encabezado muestra siempre el usuario actual, la
+empresa (si es B2B), una etiqueta con el rol y el botón *Salir*. El cliente
+vuelve a la página que quería abrir; el administrador va a su panel.
+
+**Permisos (RBAC en la interfaz).** `mi-proyecto/src/features/session/roles.js`
+es la única fuente de verdad: define los permisos de cada rol y la función
+`hasPermission(session, permiso)`. El componente `RequireRole` protege cada
+ruta con un permiso; el menú y los botones también consultan `hasPermission`.
+
+| Funcionalidad | Visitante | B2C | B2B | ADMIN |
+|---|---|---|---|---|
+| Consultar catálogo y buscar | ✓ | ✓ | ✓ | ✓ |
+| Agregar productos al carrito | ✓ | ✓ | ✓ | — |
+| Checkout | — (pide iniciar sesión) | ✓ | ✓ | — |
+| Consultar órdenes propias (`/mis-ordenes`) | — | ✓ | ✓ | — |
+| Consultar todas las órdenes (`/admin/ordenes`) | — | — | — | ✓ |
+| Información administrativa (`/admin/*`) | — | — | — | ✓ |
+| Administración simulada | — | — | — | ✓ |
+
+- Sin sesión, una ruta protegida lleva a `/login` y, al entrar, regresa a ella.
+- Con sesión pero sin permiso, lleva a `/acceso-denegado`, que explica por qué.
+- El carrito pertenece al usuario: al cerrar sesión o cambiar de usuario se
+  vacía (en un equipo compartido nadie ve el carrito de otro). Si un visitante
+  arma su carrito e inicia sesión, se conserva y se recalcula con su tarifa.
+  El administrador no tiene carrito.
+
+**Comportamiento de cada rol.**
+
+- **B2C:** ve y paga el precio público, compra desde 1 unidad y usa el proceso
+  de compra existente.
+- **B2B:** ve y paga el precio mayorista, debe respetar el pedido mínimo de
+  cada producto, recibe descuento por volumen y su empresa queda en la orden.
+- **ADMIN:** ve el catálogo con precio público como referencia, no compra y
+  tiene un panel con identidad visual propia (barra lateral oscura) para que
+  quede claro que no está en la vista de compra.
+
+### Precios y condiciones B2B
+
+`mi-proyecto/src/features/pricing/pricing.js` decide el precio según el rol y
+lo usan el catálogo, el detalle, el carrito, el checkout y la orden, así que el
+precio mostrado y el guardado siempre coinciden.
+
+- **Precio B2C:** `pricing.b2c.price_crc`. Lo ven el cliente B2C, el visitante
+  y el administrador.
+- **Precio B2B:** `pricing.b2b.price_crc`, siempre menor que el B2C en los 330
+  productos. Ejemplo: *Kit de Orugas para Komatsu D85*, B2C ₡4 900 000 y B2B
+  ₡4 312 000.
+
+**Condiciones comerciales B2B elegidas.**
+
+1. **Pedido mínimo por producto** (`pricing.b2b.min_order_quantity`): 1, 2, 3
+   o 5 unidades según el producto. Justificación: una venta mayorista solo
+   tiene sentido por volumen; el mínimo evita que una empresa pague el precio
+   rebajado por una sola pieza.
+2. **Descuento por volumen** (`pricing.b2b.volume_discounts`): tramos como
+   "5% desde 4 unidades, 10% desde 10". Se aplica el tramo más alto que
+   alcance la cantidad. Justificación: premia las compras grandes, que es lo
+   que busca un cliente empresarial.
+
+**Reglas de validación.**
+
+- El detalle arranca la cantidad en el mínimo B2B y el botón "−" no deja bajar
+  de ahí; la tarjeta del catálogo dice "Agregar N al carrito".
+- El carrito y el checkout muestran las condiciones ("Pedido mínimo 2 · 5%
+  desde 4 u.") y bloquean continuar si una línea está por debajo del mínimo.
+- Si un visitante con 1 unidad inicia sesión como B2B, el carrito sube la
+  cantidad al mínimo y lo avisa.
+- Si el precio que corresponde al rol falta o no es un número mayor que 0, el
+  producto se muestra como "Precio no disponible" y no se puede comprar (no se
+  usa el otro precio como respaldo).
+- `buildOrder` repite las validaciones de precio, mínimo y stock antes de
+  guardar la orden.
+
+### Multi-inventario y sucursales
+
+Se reutilizó el inventario que el catálogo trae desde el Proyecto I:
+`locations: [{ site, stock_quantity }]`. Las sucursales están en
+`mi-proyecto/src/features/inventory/branches.js`:
+
+| Sucursal | Dirección |
+|---|---|
+| San José | Paseo Colón, San José |
+| Alajuela | Radial Francisco J. Orlich, Alajuela |
+| Cartago Centro | Avenida 1, Cartago Centro |
+
+Ejemplo real (`REP-BD-010`): San José 12, Alajuela 3, Cartago Centro 5.
+
+**Disponibilidad.** El detalle del producto muestra las existencias por
+sucursal y el total. En el checkout el cliente elige la sucursal de retiro o
+despacho; cada opción indica cuántos productos de la compra puede surtir
+("1 de 1 producto disponible") y, al elegirla, se muestra por producto
+"Disponible: N unidades · Cantidad: M".
+
+**Validación de cantidades.**
+
+- No se puede agregar más unidades de las que hay en total.
+- Si la sucursal elegida tiene menos de lo pedido, se informa ("Pediste 4
+  unidades, pero en Alajuela solo hay 3...") y no se puede pagar.
+- Si la sucursal no tiene el producto, se informa ("La sucursal Alajuela no
+  tiene ... disponible. Elige otra sucursal...").
+- Un producto sin existencias en ninguna sucursal aparece como "Agotado" y no
+  se puede agregar.
+- La sucursal elegida queda en la orden y se recuerda para la próxima compra.
+
+### Órdenes
+
+La orden se arma en `mi-proyecto/src/features/orders/buildOrder.js`. Forma del
+registro (orden real generada en las pruebas; se abrevian la imagen y los
+datos de contacto):
+
+```json
+{
+  "orderNumber": "MCR-20261120-V55QDDZH",
+  "createdAt": "2026-11-20T16:30:15.298Z",
+  "customer": {
+    "userId": "u-b2b-02", "name": "Daniela Chaves Ureña",
+    "email": "proveeduria@agrovalle.cr", "role": "B2B", "roleLabel": "Cliente B2B",
+    "company": { "name": "Agroindustrial del Valle S.A.", "legalId": "3-101-778812", "sector": "Agroindustria", "contact": "...", "phone": "..." }
+  },
+  "priceType": "B2B",
+  "commercialConditions": {
+    "priceType": "B2B", "label": "Condiciones B2B (mayorista)",
+    "rules": ["Precio mayorista B2B de cada producto.", "Pedido mínimo por producto según su ficha; validado antes de pagar.", "Ningún producto alcanzó un descuento por volumen."]
+  },
+  "branch": { "id": "cartago", "name": "Cartago Centro", "address": "Avenida 1, Cartago Centro" },
+  "buyer": { "fullName": "...", "email": "...", "phone": "..." },
+  "delivery": { "province": "...", "canton": "...", "address": "...", "extraInfo": "" },
+  "items": [{
+    "id": "REP-BD-010", "name": "Kit de Orugas para Komatsu D85", "image": "https://...",
+    "quantity": 2, "priceType": "B2B", "listPrice": 4312000, "unitPrice": 4312000,
+    "discountPct": 0, "discountAmount": 0, "lineSubtotal": 8624000,
+    "minQuantity": 2, "branchStock": 5,
+    "conditions": "Pedido mínimo 2 · 5% desde 4 u. · 10% desde 10 u."
+  }],
+  "currency": "CRC", "subtotal": 8624000, "iva": 1121120, "shippingCost": 3500, "total": 9748620,
+  "paymentMethod": { "brand": "Visa", "last4": "4242" },
+  "termsAcceptance": { "accepted": true, "version": "2026-10", "acceptedAt": "2026-11-20T16:30:15.298Z" },
+  "orderStatus": "CONFIRMED", "paymentStatus": "APPROVED"
+}
+```
+
+Además se guardan `payment` (respuesta del Sandbox), `paymentAttempts` y
+`updatedAt`. En una compra con descuento, por ejemplo 4 unidades del mismo
+producto, la línea queda con `listPrice` 4 312 000, `discountPct` 0.05 y
+`unitPrice` 4 096 400.
+
+Con esto la orden conserva todo lo que pide el enunciado: número, fecha,
+usuario, rol, datos del cliente y de la empresa, productos, cantidades, precio
+de lista y precio aplicado, sucursal, subtotal, impuestos, envío, total, estado
+de la orden y estado del pago. `commercialConditions` y `priceType` dejan claro
+con qué condiciones se hizo la compra. De la tarjeta solo se guardan la marca y
+los últimos 4 dígitos.
+
+**Consulta posterior.**
+
+- El cliente ve sus órdenes en `/mis-ordenes` (también por número:
+  `/mis-ordenes?orden=MCR-...`). Si el número no existe se muestra "No
+  encontramos la orden ...".
+- El administrador ve todas en `/admin/ordenes`.
+
+### Administración
+
+Disponible solo para el rol ADMIN en `/admin`:
+
+| Sección | Qué permite |
+|---|---|
+| **Inicio** | Resumen del panel y historial de cambios simulados, con opción de restablecer todo. |
+| **Órdenes** | Todas las órdenes (Algolia y este navegador) con número, fecha, cliente, tipo de cliente, empresa, sucursal, total, estado de la orden y del pago. Filtros por tipo de cliente, estados y texto. **Ver detalle** muestra líneas, precio de lista y aplicado, descuento, condiciones comerciales, empresa, sucursal y montos. **Exportar órdenes de este navegador** descarga el JSON para `npm run upload-orders`. |
+| **Productos** | Precio B2C, precio B2B, pedido mínimo y descuentos por volumen de cada producto. |
+| **Inventario** | Existencias de cada producto por sucursal, con las sucursales en cero resaltadas. |
+| **Métricas** | Métricas de uso calculadas con los eventos registrados (laboratorio 5). |
+
+**Operaciones simuladas.**
+
+- **Modificar un precio** (B2C o B2B) en *Productos*.
+- **Modificar el inventario** de una sucursal en *Inventario*.
+
+Cada cambio guarda el valor anterior, el nuevo y la fecha en
+`maquinaria-cr-admin-changes-v1`. El panel confirma qué se modificó, resalta
+las filas cambiadas y permite restablecerlas. El cambio se aplica sobre los
+datos de Algolia al leerlos, así que se ve en el catálogo, el detalle, el
+carrito, el checkout y la orden de ese navegador, sin tocar el índice.
+
+**Restricciones de acceso.** Un cliente que abre `/admin` (o cualquier
+`/admin/*`) va a `/acceso-denegado`. El administrador no puede usar el carrito
+ni el checkout.
+
+### Manejo de errores
+
+| Situación | Comportamiento |
+|---|---|
+| Usuario inválido | "No encontramos un usuario con ese correo..." y no inicia sesión. |
+| Usuario sin rol válido | "Pedro Ruiz Arias no tiene un rol válido en la tienda..." y no inicia sesión; una sesión guardada con rol alterado se descarta. |
+| Cliente intenta entrar al panel | Redirige a `/acceso-denegado` con la explicación. |
+| Producto sin inventario | "Agotado"; no se puede agregar. |
+| Cantidad superior al inventario | Se informa la cantidad disponible y no se puede pagar. |
+| Sucursal sin disponibilidad | Se informa y se sugiere otra sucursal. |
+| Cantidad inferior al mínimo B2B | Se informa el mínimo y no se puede continuar. |
+| Precio o información comercial inválida | "Precio no disponible: este producto no se puede comprar por ahora." |
+| Orden inexistente | "No encontramos la orden ...". |
+| Algolia no responde | Se avisa y se muestran los datos locales disponibles; el login ofrece *Reintentar*. |
+
+### Pruebas
+
+Escenarios ejecutados el 20 de noviembre de 2026 sobre la rama `dev` con la
+app en local, automatizados con un navegador (Edge) y revisados en pantalla.
+Producto usado: `REP-BD-010`.
+
+| # | Escenario | Pasos | Resultado |
+|---|---|---|---|
+| 1 | Inicio de sesión B2C | Entrar como ana.mora@correo.cr | El encabezado muestra "Ana" y la etiqueta B2C. ✓ |
+| 2 | Inicio de sesión B2B | Entrar como compras@constructoratica.cr | Muestra "Carlos", "Constructora Tica S.A." y B2B. ✓ |
+| 3 | Inicio de sesión Admin | Entrar como admin@maquinariacr.com | Abre `/admin`. ✓ |
+| 4 | Precio B2C | Detalle de `REP-BD-010` como Ana | ₡4 900 000. ✓ |
+| 5 | Precio B2B | Mismo producto como Carlos | ₡4 312 000 por unidad (tarjeta: "₡4 312 000 B2B"). ✓ |
+| 6 | Condición B2B | Detalle como Carlos | La cantidad arranca en 2 y "−" está deshabilitado; con 4 unidades se aplica 5%. Un carrito con 1 unidad no deja pagar. ✓ |
+| 7 | Selección de sucursal | Checkout | Tres sucursales con la disponibilidad de la compra. ✓ |
+| 8 | Validación de inventario | 4 unidades con Alajuela (3 en existencia) | "solo hay 3"; no deja pagar. ✓ |
+| 9 | Orden B2C | Compra de Ana en San José | Orden con rol B2C, precio ₡4 900 000, sucursal San José, pago aprobado. ✓ |
+| 10 | Orden B2B | Compra de Carlos, 4 u. en San José | Orden con rol B2B, empresa, precio de lista ₡4 312 000, aplicado ₡4 096 400 (5%), sucursal San José. ✓ |
+| 11 | Consulta administrativa de órdenes | Admin en `/admin/ordenes` | Aparecen las dos órdenes nuevas con todas las columnas. ✓ |
+| 12 | Restricción de acceso | B2C y B2B abren `/admin`; Admin abre `/carrito` y `/checkout` | Todos llegan a `/acceso-denegado`. ✓ |
+
+Pruebas adicionales: usuario inválido, usuario sin rol, orden inexistente,
+producto agotado, sucursal sin existencias, cambio de precio por el admin
+reflejado en detalle/carrito/orden (mismo total que el resumen), y ninguna
+pantalla con desplazamiento horizontal a 360, 390, 820, 1024 y 1280 px para
+visitante, B2C, B2B y administrador.
+
+### Inteligencia artificial
+
+Se usó Claude Code como asistente de programación. Cada integrante debe
+agregar aquí los prompts de su parte con el mismo formato.
+
+**1. Revisión del proyecto contra el enunciado**
+
+- *Problema:* saber si la rama `dev` cumplía todo el enunciado antes de la entrega.
+- *Prompt:* "revisa que este completo el py3" (adjuntando el PDF del enunciado).
+- *Resultado:* revisión de los datos de los tres índices de Algolia y prueba
+  automatizada de los 12 escenarios en el navegador: todos funcionaban. Se
+  detectó que faltaba esta documentación, que `main` estaba desactualizada y
+  que las órdenes nuevas no llegaban al índice de órdenes.
+- *Modificaciones del estudiante:* pidió corregir todo lo que fallara desde
+  `dev` en una rama nueva, con un commit por archivo y él como único autor, y
+  cambiar el nombre de la rama a `fix/revision`.
+- *Solución adoptada:* la descrita en el siguiente punto.
+
+**2. Corrección de las fallas encontradas**
+
+- *Problema:* encabezado que se salía de la pantalla en tablet, catálogo que
+  no reaccionaba a una búsqueda o categoría nueva en la dirección (enlaces del
+  pie de página, botón atrás), órdenes nuevas fuera del índice
+  `grupo-07_orders`, poca información de cada orden en el panel y
+  documentación faltante.
+- *Prompt:* "arregla todo lo que puedas de acuerdo con el documento desde el
+  dev ... y mejora lo que puedas ... lo vas probando".
+- *Resultado:* encabezado que pasa a dos filas hasta 1279 px (probado con los
+  cinco usuarios), catálogo que se actualiza al cambiar `?q` o `?categoria`,
+  exportación de órdenes y script `upload-orders`, detalle de
+  la orden en el panel, alineación de números en las tablas del panel y esta
+  sección del README.
+- *Modificaciones del estudiante:* revisión de los cambios antes de los commits.
+- *Solución adoptada:* escribir en Algolia solo con un script local, nunca
+  desde el navegador, para no exponer la llave de administración.
+
+---
+
 ## Historial de navegación por usuario
 
 La aplicación conserva los productos vistos y las búsquedas recientes de cada
@@ -135,6 +466,14 @@ ALGOLIA_ADMIN_KEY=...           # NUNCA en el repo ni en el bundle
 
 Otros comandos: `npm run lint`, `npm run build`, `npm run preview`, `npm run deploy` (publica en GitHub Pages) y `npm run seed-algolia` (indexa `data/` en Algolia).
 
+Índices del Proyecto III (usan `ALGOLIA_ADMIN_KEY`, solo en local):
+
+| Comando | Qué hace |
+|---|---|
+| `npm run seed-users` | Carga `data/users/users.json` en `grupo-07_users`. |
+| `npm run seed-orders` | Reemplaza el contenido de `grupo-07_orders` con las órdenes de ejemplo. |
+| `npm run upload-orders -- <archivo.json>` | Agrega o actualiza en `grupo-07_orders` las órdenes exportadas desde *Panel → Órdenes*, sin borrar las demás. Con `--dry` solo valida. |
+
 ---
 
 ## Rutas
@@ -148,6 +487,13 @@ Otros comandos: `npm run lint`, `npm run build`, `npm run preview`, `npm run dep
 | `/checkout` | Proceso de compra |
 | `/confirmacion` | Resultado de la transacción |
 | `/login` | Inicio de sesión simulado |
+| `/mis-ordenes` | Órdenes del cliente (B2C y B2B) |
+| `/admin` | Panel administrativo: inicio |
+| `/admin/ordenes` | Todas las órdenes, con detalle y exportación |
+| `/admin/productos` | Precios y condiciones B2B; modificación simulada de precios |
+| `/admin/inventario` | Existencias por sucursal; modificación simulada de inventario |
+| `/admin/metricas` | Métricas de uso |
+| `/acceso-denegado` | Aviso cuando el rol no puede entrar a una sección |
 | `*` | Página 404 |
 
 ---
