@@ -1,6 +1,5 @@
 import { getAlgoliaResults } from '@algolia/autocomplete-preset-algolia'
 import { searchClient } from './searchClient'
-import { recentSearchesPlugin } from './recentSearchesPlugin'
 
 /**
  * Nombre: createProductSuggestionsSource
@@ -9,7 +8,7 @@ import { recentSearchesPlugin } from './recentSearchesPlugin'
  * Salidas: Objeto con la configuración del origen de sugerencias.
  * Excepciones: No hay.
  */
-export function createProductSuggestionsSource({ onSelect }) {
+export function createProductSuggestionsSource({ onSelect, recentSearchesPlugin }) {
   return {
     sourceId: 'products',
     getItems({ query }) {
@@ -37,7 +36,7 @@ export function createProductSuggestionsSource({ onSelect }) {
       },
     },
     onSelect({ item }) {
-      recentSearchesPlugin.data.addItem({ id: item.objectID, label: item.title })
+      recentSearchesPlugin?.data.addItem({ id: item.objectID, label: item.title })
       onSelect?.(item.title)
     },
   }

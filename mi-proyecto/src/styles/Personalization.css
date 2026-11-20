@@ -1,0 +1,641 @@
+/* Bloques personalizados (laboratorio 5): panel personal del inicio,
+   invitación a iniciar sesión, búsquedas recientes, lista de vistos,
+   pestañas de recomendaciones y "Borrar historial". Mobile-first: la base es
+   el celular y se amplía con min-width. Usa solo los tokens de global.css,
+   así funciona igual en tema claro y oscuro. */
+
+/* .personal-home — Contenedor del inicio, alineado con CategoryShowcase.
+   minmax(0, 1fr) evita que el contenido ancho del carrusel ensanche la columna. */
+.personal-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  max-width: 1500px;
+  width: calc(100% - 2rem);
+  margin: 1.75rem auto 0;
+  text-align: left;
+}
+
+.personal-home > * {
+  min-width: 0;
+}
+
+/* Panel con superficie propia para agrupar toda la actividad del usuario. */
+.personal-panel {
+  box-sizing: border-box;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--accent-bg);
+}
+
+.personal-home__intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.personal-home__who {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.personal-avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.personal-home__intro h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.25rem;
+}
+
+.personal-home__intro p {
+  margin: 0.2rem 0 0;
+  max-width: 60ch;
+  font-size: 0.9rem;
+}
+
+/* Cuerpo: una columna en celular; dos columnas en escritorio. */
+.personal-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.personal-body > * {
+  min-width: 0;
+}
+
+.personal-body:empty {
+  display: none;
+}
+
+/* Separación de los carruseles personalizados en detalle y carrito. */
+.personal-section--detail,
+.personal-section--cart {
+  margin-top: 2.5rem;
+}
+
+/* Invitación a iniciar sesión (inicio sin sesión). */
+.personal-invite {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--brand);
+  border-radius: 16px;
+  background: var(--accent-bg);
+}
+
+.personal-invite h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.25rem;
+}
+
+.personal-invite p {
+  margin: 0.25rem 0 0;
+}
+
+/* Botón amarillo de la marca: "Iniciar sesión" / "Explorar el catálogo". */
+.personal-invite__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.personal-invite__button:hover {
+  background: var(--brand-strong);
+}
+
+.personal-invite__button:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: 2px;
+}
+
+/* "Borrar historial" y su confirmación en el mismo lugar. */
+.personal-link-button {
+  min-height: 44px;
+  padding: 0.4rem 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.personal-link-button:hover {
+  color: var(--danger);
+}
+
+.personal-link-button:focus-visible,
+.viewed-list__toggle:focus-visible,
+.personal-confirm button:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+.personal-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.personal-confirm button {
+  min-height: 44px;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.personal-confirm__yes {
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.personal-confirm__no {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+/* Pestañas de "Inspirado en tu historial". Se desplazan de lado en celular. */
+.personal-tabs-area {
+  margin-bottom: 0.75rem;
+}
+
+.personal-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 2px 2px 0.5rem;
+  scrollbar-width: none;
+}
+
+.personal-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.personal-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.personal-tab:hover {
+  border-color: var(--accent-border);
+}
+
+.personal-tab--active,
+.personal-tab--active:hover {
+  border-color: var(--brand-strong);
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.personal-tab:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+.personal-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* Esqueleto de carga de las recomendaciones. */
+.personal-skeleton {
+  display: flex;
+  gap: 1rem;
+  overflow: hidden;
+  padding: 6px 2px 0.75rem;
+}
+
+.personal-skeleton__card {
+  flex: 0 0 168px;
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.personal-skeleton__image,
+.personal-skeleton__line {
+  border-radius: 8px;
+  background: var(--code-bg);
+  animation: personal-pulse 1.4s ease-in-out infinite;
+}
+
+.personal-skeleton__image {
+  aspect-ratio: 1 / 1;
+}
+
+.personal-skeleton__line {
+  height: 0.85rem;
+}
+
+.personal-skeleton__line--short {
+  width: 60%;
+}
+
+@keyframes personal-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .personal-skeleton__image,
+  .personal-skeleton__line {
+    animation: none;
+  }
+}
+
+/* Búsquedas recientes: botones tipo "chip" con su ✕. */
+.recent-searches__title {
+  margin: 0 0 0.6rem;
+  color: var(--text-h);
+  font-size: 1.1rem;
+}
+
+.recent-searches__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-search-chip {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.recent-search-chip:hover,
+.recent-search-chip:focus-within {
+  border-color: var(--brand-strong);
+}
+
+.recent-search-chip button {
+  border: 0;
+  background: none;
+  color: var(--text-h);
+  font: inherit;
+  cursor: pointer;
+}
+
+.recent-search-chip__query {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0.35rem 0.4rem 0.35rem 0.9rem;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-search-chip__remove {
+  min-width: 44px;
+  padding: 0 0.75rem 0 0.4rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.recent-search-chip__remove:hover {
+  color: var(--danger);
+  opacity: 1;
+}
+
+.recent-search-chip button:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: -2px;
+}
+
+/* En el catálogo, las búsquedas recientes van sobre la cuadrícula. */
+.recent-searches--catalog {
+  margin-bottom: 1.25rem;
+}
+
+/* Variante dentro del panel: título pequeño tipo etiqueta. */
+.recent-searches--panel .recent-searches__title {
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Lista compacta "Seguí donde lo dejaste": fila de tiles desplazable en celular. */
+.viewed-list__header h2 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.1rem;
+}
+
+.viewed-list__header p {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}
+
+.viewed-list__items {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 2px 2px 0.5rem;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+}
+
+.viewed-item {
+  position: relative;
+  flex: 0 0 140px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  scroll-snap-align: start;
+  transition: border-color 0.15s ease;
+}
+
+.viewed-item:hover,
+.viewed-item:focus-within {
+  border-color: var(--brand-strong);
+}
+
+.viewed-item__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0.6rem;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.viewed-item__link:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: 2px;
+}
+
+.viewed-item__image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: var(--code-bg);
+  object-fit: cover;
+}
+
+.viewed-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.viewed-item__category {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.7rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewed-item__title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-h);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.viewed-item__price {
+  color: var(--text-h);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.viewed-item__remove {
+  position: absolute;
+  z-index: 1;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.viewed-item__remove::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  z-index: -1;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+}
+
+.viewed-item__remove:hover {
+  color: var(--danger);
+}
+
+.viewed-item__remove:focus-visible {
+  outline: 2px solid var(--brand-strong);
+  outline-offset: -4px;
+  border-radius: 999px;
+}
+
+.viewed-list__toggle {
+  display: none;
+  min-height: 44px;
+  margin-top: 0.5rem;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.viewed-list__toggle:hover {
+  border-color: var(--brand-strong);
+}
+
+@media (min-width: 481px) {
+  .personal-panel {
+    padding: 1.25rem;
+  }
+
+  .personal-skeleton__card {
+    flex-basis: 220px;
+  }
+
+  .viewed-item {
+    flex-basis: 160px;
+  }
+}
+
+@media (min-width: 769px) {
+  .personal-home {
+    width: 95%;
+    margin-top: 2.5rem;
+  }
+
+  .personal-panel {
+    padding: 1.5rem;
+  }
+
+  .personal-home__intro h2 {
+    font-size: 1.5rem;
+  }
+
+  .personal-invite {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    padding: 1.5rem 1.75rem;
+  }
+
+  .personal-invite__button {
+    width: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .personal-panel {
+    padding: 1.75rem;
+  }
+
+  .personal-body {
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .personal-body > :only-child {
+    grid-column: 1 / -1;
+  }
+
+  .viewed-list__items {
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow: visible;
+    padding: 0;
+    scroll-snap-type: none;
+  }
+
+  .viewed-list__items:not(.viewed-list__items--expanded) .viewed-item:nth-child(n + 5) {
+    display: none;
+  }
+
+  .viewed-item {
+    flex-basis: auto;
+  }
+
+  .viewed-item__link {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 2.75rem 0.5rem 0.5rem;
+  }
+
+  .viewed-item__image {
+    flex: 0 0 72px;
+    width: 72px;
+    height: 72px;
+  }
+
+  .viewed-item__remove {
+    top: 50%;
+    right: 0.25rem;
+    transform: translateY(-50%);
+  }
+
+  .viewed-list__toggle {
+    display: inline-flex;
+    align-items: center;
+  }
+}

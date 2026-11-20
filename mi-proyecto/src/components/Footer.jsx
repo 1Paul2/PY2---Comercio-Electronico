@@ -1,16 +1,21 @@
 import { Link } from 'react-router-dom'
 import { POLICY_PAGES } from '../features/policies/policyPages'
+import { useSession } from '../context/useSession'
+import { PERMISSIONS, hasPermission } from '../features/session/roles'
 import '../styles/Footer.css'
 
 /**
  * Nombre: Footer
- * Descripción: Renderiza el pie de página del sitio con la marca, navegación,
+ * Descripción: Renderiza el pie de página del sitio con la marca, navegación
+ * (con los accesos que permite el rol del usuario),
  * categorías, enlaces de ayuda y políticas, y datos de contacto.
  * Entradas: No recibe parámetros.
  * Salidas: JSX con el footer visible en la aplicación.
  * Excepciones: No hay.
  */
 function Footer() {
+  const { session } = useSession()
+
   return (
     <footer className="site-footer">
       <div className="site-footer__container">
@@ -28,6 +33,13 @@ function Footer() {
           <ul className="site-footer__links">
             <li><Link to="/">› Inicio</Link></li>
             <li><Link to="/productos">› Productos</Link></li>
+            {hasPermission(session, PERMISSIONS.VIEW_OWN_ORDERS) && (
+              <li><Link to="/mis-ordenes">› Mis órdenes</Link></li>
+            )}
+            {hasPermission(session, PERMISSIONS.VIEW_ADMIN_INFO) && (
+              <li><Link to="/admin">› Panel administrativo</Link></li>
+            )}
+            <li><Link to="/login">› {session ? 'Mi sesión' : 'Iniciar sesión'}</Link></li>
           </ul>
         </div>
 

@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Hits, useInstantSearch } from 'react-instantsearch'
+import { Hits, useInstantSearch, useSearchBox } from 'react-instantsearch'
 import Filters from './Filters'
 import ProductCard from './ProductCard'
 import Pagination from './Pagination'
 import EmptyState from './EmptyState'
+import RecentSearches from '../personalization/RecentSearches'
+import { repeatSearch } from '../personalization/usePersonalHistory'
 import '../../styles/Catalog.css'
 
 /**
@@ -26,7 +28,13 @@ const filtrosAbiertosPorDefecto = () =>
 function Catalog() {
   const [filtersOpen, setFiltersOpen] = useState(filtrosAbiertosPorDefecto)
   const { results } = useInstantSearch()
+  const { query, refine } = useSearchBox()
   const hasHits = Boolean(results?.nbHits)
+
+  function handleRecentSearch(recentQuery) {
+    repeatSearch(recentQuery)
+    refine(recentQuery)
+  }
 
   return (
     <div className="catalog">
@@ -34,6 +42,7 @@ function Catalog() {
         <Filters isOpen={filtersOpen} onToggle={() => setFiltersOpen((o) => !o)} />
 
         <div className="catalog__results">
+          {!query && <RecentSearches onSelect={handleRecentSearch} className="recent-searches--catalog" />}
           {hasHits ? (
             <>
               <Hits hitComponent={ProductCard} classNames={{ list: 'catalog__grid' }} />

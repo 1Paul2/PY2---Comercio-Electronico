@@ -1,0 +1,687 @@
+/* Admin.css — Panel administrativo (proyecto 3).
+
+   El panel usa una identidad visual propia, distinta de la tienda: barra
+   lateral oscura fija, superficie neutra y el amarillo de marca reservado
+   para el estado activo y las acciones. Así el administrador sabe de un
+   vistazo que no está en la vista de compra. Los colores se declaran aquí
+   y no dependen del tema claro/oscuro del catálogo, para que el panel se
+   vea igual siempre. */
+
+.admin {
+  --admin-bg: #11131a;
+  --admin-surface: #191c25;
+  --admin-surface-2: #21242f;
+  --admin-border: #2e3242;
+  --admin-text: #e6e8ef;
+  --admin-muted: #9aa0b4;
+  --admin-accent: #ffd400;
+  --admin-accent-ink: #11131a;
+  --admin-ok: #3fb950;
+  --admin-warn: #e3b341;
+  --admin-danger: #f85149;
+
+  /* #root centra el texto para la tienda; el panel se alinea a la izquierda. */
+  text-align: left;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+/* ---------- Barra lateral ---------- */
+
+.admin__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1.1rem;
+  background: var(--admin-surface);
+  border-right: 1px solid var(--admin-border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.admin__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin__brand-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--admin-text);
+}
+
+.admin__brand-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--admin-accent);
+}
+
+.admin__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.admin__nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-left: 3px solid transparent;
+}
+
+.admin__nav-link:hover,
+.admin__nav-link:focus-visible {
+  background: var(--admin-surface-2);
+  color: var(--admin-text);
+}
+
+.admin__nav-link--active {
+  background: var(--admin-surface-2);
+  color: var(--admin-text);
+  border-left-color: var(--admin-accent);
+}
+
+.admin__nav-badge {
+  min-width: 22px;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--admin-accent);
+  color: var(--admin-accent-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.admin__user {
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--admin-border);
+  font-size: 0.8rem;
+}
+
+.admin__user-name {
+  margin: 0;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+.admin__user-role {
+  margin: 0.1rem 0 0;
+  color: var(--admin-accent);
+  font-weight: 600;
+}
+
+.admin__user-mail {
+  margin: 0.1rem 0 0.7rem;
+  color: var(--admin-muted);
+  overflow-wrap: anywhere;
+}
+
+.admin__user-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-start;
+}
+
+.admin__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--admin-muted);
+  text-decoration: underline;
+  font-size: 0.8rem;
+}
+
+.admin__link:hover,
+.admin__link:focus-visible {
+  color: var(--admin-text);
+}
+
+.admin__link--button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ---------- Contenido ---------- */
+
+.admin__main {
+  min-width: 0;
+  padding: 1.75rem 1.75rem 3rem;
+}
+
+.admin__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin__eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--admin-accent);
+}
+
+.admin__header h1 {
+  margin: 0.25rem 0 0;
+  font-size: 1.6rem;
+  color: var(--admin-text);
+}
+
+.admin__description {
+  margin: 0.35rem 0 0;
+  max-width: 68ch;
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+}
+
+.admin__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---------- Tarjetas de resumen ---------- */
+
+.admin-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.admin-card {
+  padding: 1.05rem 1.15rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-surface);
+  min-width: 0;
+}
+
+.admin-card__value {
+  margin: 0;
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.admin-card__label {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-card__hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+}
+
+/* ---------- Paneles y secciones ---------- */
+
+.admin-panel {
+  padding: 1.25rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-surface);
+  margin-bottom: 1.5rem;
+  min-width: 0;
+}
+
+.admin-panel__title {
+  margin: 0 0 0.3rem;
+  font-size: 1.05rem;
+}
+
+.admin-panel__hint {
+  margin: 0 0 1rem;
+  font-size: 0.83rem;
+  color: var(--admin-muted);
+}
+
+.admin-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+/* ---------- Filtros ---------- */
+
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.admin-field__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+}
+
+.admin-field input,
+.admin-field select {
+  min-height: 40px;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
+  color: var(--admin-text);
+  font: inherit;
+  font-size: 0.88rem;
+  min-width: 0;
+}
+
+.admin-field input:focus-visible,
+.admin-field select:focus-visible {
+  outline: 2px solid var(--admin-accent);
+  outline-offset: 1px;
+}
+
+.admin-field--grow {
+  flex: 1 1 240px;
+}
+
+/* ---------- Botones ---------- */
+
+.admin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-2);
+  color: var(--admin-text);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.admin-button:hover:not(:disabled),
+.admin-button:focus-visible:not(:disabled) {
+  border-color: var(--admin-accent);
+}
+
+.admin-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.admin-button--primary {
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: var(--admin-accent-ink);
+  font-weight: 700;
+}
+
+.admin-button--danger {
+  color: var(--admin-danger);
+  border-color: var(--admin-danger);
+}
+
+.admin-button--small {
+  min-height: 34px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+/* ---------- Tablas ---------- */
+
+.admin-table-wrap {
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--admin-border);
+  vertical-align: top;
+  /* Sin esto el min-content de la tabla arrastra el ancho de la página
+     entera en pantallas angostas, aunque el contenedor tenga overflow-x. */
+  overflow-wrap: anywhere;
+}
+
+.admin-table th {
+  background: var(--admin-surface-2);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--admin-surface-2);
+}
+
+/* Correccion -  las columnas numericas quedaban alineadas a la izquierda
+   porque ".admin-table th/td" tenia mas especificidad que ".admin-table__num". */
+.admin-table .admin-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.admin-table__main {
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.admin-table__sub {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--admin-muted);
+}
+
+/* Fila resaltada: sucursal sin existencias. */
+.admin-table tr.is-empty-stock {
+  background: rgba(248, 81, 73, 0.07);
+}
+
+.admin-table tr.is-modified {
+  background: rgba(255, 212, 0, 0.07);
+}
+
+/* ---------- Detalle de una orden ---------- */
+
+.admin-table tr.is-open {
+  background: var(--admin-surface-2);
+}
+
+.admin-table tr.admin-table__detail-row:hover {
+  background: transparent;
+}
+
+.admin-table__detail-row > td {
+  padding: 0.9rem;
+  background: var(--admin-bg);
+}
+
+.admin-order-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-order-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-order-detail__title {
+  margin: 0 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--admin-accent);
+}
+
+.admin-order-detail__text {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+}
+
+.admin-order-detail__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: var(--admin-muted);
+}
+
+.admin-order-detail__totals {
+  display: grid;
+  gap: 0.3rem;
+  width: min(320px, 100%);
+  margin: 0 0 0 auto;
+  font-size: 0.85rem;
+}
+
+.admin-order-detail__totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-order-detail__totals dt {
+  color: var(--admin-muted);
+}
+
+.admin-order-detail__totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-order-detail__grand {
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--admin-border);
+  font-weight: 700;
+}
+
+.admin-order-detail__grand dt {
+  color: var(--admin-text);
+}
+
+/* ---------- Etiquetas de estado ---------- */
+
+.admin-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+}
+
+.admin-tag--ok { color: var(--admin-ok); }
+.admin-tag--warn { color: var(--admin-warn); }
+.admin-tag--danger { color: var(--admin-danger); }
+.admin-tag--muted { color: var(--admin-muted); }
+.admin-tag--accent { color: var(--admin-accent); }
+
+/* ---------- Mensajes ---------- */
+
+.admin-message {
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  font-size: 0.86rem;
+  margin-bottom: 1rem;
+}
+
+.admin-message--ok {
+  border-color: var(--admin-ok);
+  color: var(--admin-ok);
+}
+
+.admin-message--error {
+  border-color: var(--admin-danger);
+  color: var(--admin-danger);
+}
+
+.admin-message--info {
+  color: var(--admin-muted);
+}
+
+.admin-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+}
+
+/* ---------- Formulario de modificación simulada ---------- */
+
+.admin-edit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.admin-edit input[type='number'] {
+  width: 130px;
+}
+
+.admin-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.admin-history li {
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--admin-border);
+  font-size: 0.84rem;
+}
+
+.admin-history li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admin-history__change {
+  color: var(--admin-muted);
+}
+
+.admin-history__change strong {
+  color: var(--admin-text);
+}
+
+.admin-history__time {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--admin-muted);
+}
+
+/* ---------- Métricas embebidas ---------- */
+
+/* La página de métricas se reutiliza dentro del panel: se neutraliza su
+   ancho máximo y su relleno para que ocupe el área de contenido. */
+.admin__main .analytics-page {
+  max-width: none;
+  padding: 0;
+}
+
+.admin__main .analytics-page__header {
+  display: none;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1100px) {
+  .admin-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .admin {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin__sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--admin-border);
+  }
+
+  .admin__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .admin__nav-link {
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+  }
+
+  .admin__nav-link--active {
+    border-left: 0;
+    border-bottom-color: var(--admin-accent);
+  }
+
+  .admin-columns,
+  .admin-order-detail__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .admin__main {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+
+  .admin-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin__header h1 {
+    font-size: 1.3rem;
+  }
+
+  .admin-field--grow {
+    flex-basis: 100%;
+  }
+}

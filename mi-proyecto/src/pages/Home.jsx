@@ -5,6 +5,7 @@ import { InstantSearch } from 'react-instantsearch'
 import { searchClient } from '../features/catalog/searchClient'
 import SearchHeader from '../features/catalog/SearchHeader'
 import CategoryShowcase from '../features/catalog/CategoryShowcase'
+import PersonalHome from '../features/personalization/PersonalHome'
 import Footer from '../components/Footer'
 import '../styles/Home.css'
 
@@ -40,6 +41,10 @@ function Home() {
         <h1>Encontrá la maquinaria y repuestos que tu proyecto necesita</h1>
         <p>Stock actualizado en tiempo real, precios transparentes y cotización en un clic.</p>
       </section>
+
+      {/* Sección personalizada: con sesión muestra búsquedas recientes,
+          productos vistos y recomendaciones; sin sesión invita a iniciarla. */}
+      <PersonalHome />
 
       {/* Bloques de categorías con imagen rotativa. */}
       <CategoryShowcase />

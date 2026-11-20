@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { searchClient } from './searchClient'
-import ProductCard from './ProductCard'
-import '../../styles/RelatedProducts.css'
+import ProductCarousel from './ProductCarousel'
 
 const INDEX_NAME = 'grupo-07_products'
 const RELATED_LIMIT = 12
@@ -75,102 +74,19 @@ function useRelatedProducts({ categoryFacet, brandFacet, excludeId }) {
 
 /**
  * Nombre: RelatedProducts
- * Descripción: Renderiza una fila desplazable con productos relacionados al producto actual.
- *              Se navega con dos flechas sobre los costados de la fila (semitransparentes,
- *              se resaltan al pasar el mouse) o deslizando con el dedo en pantallas táctiles.
- *              La navegación es de ida y vuelta: al llegar al final, "›" regresa al inicio, y desde
- *              el inicio, "‹" salta al final. Si todos los productos caben, las flechas se ocultan.
+ * Descripción: Renderiza una fila desplazable con productos relacionados al
+ *              producto actual (misma categoría o marca). La fila y sus
+ *              flechas viven en ProductCarousel.
  * Entradas: categoryFacet, brandFacet, excludeId: datos para encontrar productos similares.
  * Salidas: JSX con la sección de productos relacionados.
  * Excepciones: No hay.
  */
 function RelatedProducts({ categoryFacet, brandFacet, excludeId }) {
   const { status, hits } = useRelatedProducts({ categoryFacet, brandFacet, excludeId })
-  const trackRef = useRef(null)
-  const [canScrollPrev, setCanScrollPrev] = useState(false)
-  const [canScrollNext, setCanScrollNext] = useState(false)
-  // Solo hay flechas si los productos no caben todos a la vez.
-  const hasOverflow = canScrollPrev || canScrollNext
 
-  useEffect(() => {
-    const track = trackRef.current
-    if (!track) return undefined
+  if (status !== 'ready') return null
 
-    function updateScrollState() {
-      setCanScrollPrev(track.scrollLeft > 4)
-      setCanScrollNext(track.scrollLeft + track.clientWidth < track.scrollWidth - 4)
-    }
-
-    updateScrollState()
-    track.addEventListener('scroll', updateScrollState, { passive: true })
-    window.addEventListener('resize', updateScrollState)
-
-    return () => {
-      track.removeEventListener('scroll', updateScrollState)
-      window.removeEventListener('resize', updateScrollState)
-    }
-  }, [hits])
-
-  /**
-   * Nombre: scrollByDirection
-   * Descripción: Avanza o retrocede la fila. En los extremos da la vuelta:
-   *              al final regresa al inicio y al inicio salta al final.
-   * Entradas: direction: 1 (siguiente) o -1 (anterior).
-   */
-  function scrollByDirection(direction) {
-    const track = trackRef.current
-    if (!track) return
-
-    if (direction > 0 && !canScrollNext) {
-      track.scrollTo({ left: 0, behavior: 'smooth' })
-    } else if (direction < 0 && !canScrollPrev) {
-      track.scrollTo({ left: track.scrollWidth, behavior: 'smooth' })
-    } else {
-      track.scrollBy({ left: track.clientWidth * 0.8 * direction, behavior: 'smooth' })
-    }
-  }
-
-  if (status === 'loading' || status === 'empty' || status === 'error') {
-    return null
-  }
-
-  return (
-    <section className="related-products" aria-label="Productos relacionados">
-      <div className="related-products__header">
-        <h2>Productos relacionados</h2>
-      </div>
-
-      <div className="related-products__viewport">
-        <button
-          type="button"
-          className="related-products__arrow related-products__arrow--prev"
-          onClick={() => scrollByDirection(-1)}
-          hidden={!hasOverflow}
-          aria-label={canScrollPrev ? 'Ver productos anteriores' : 'Ir al final de los productos'}
-        >
-          ‹
-        </button>
-
-        <div className="related-products__track" ref={trackRef}>
-          {hits.map((hit) => (
-            <div className="related-products__item" key={hit.objectID}>
-              <ProductCard hit={hit} />
-            </div>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className="related-products__arrow related-products__arrow--next"
-          onClick={() => scrollByDirection(1)}
-          hidden={!hasOverflow}
-          aria-label={canScrollNext ? 'Ver más productos' : 'Volver al inicio de los productos'}
-        >
-          ›
-        </button>
-      </div>
-    </section>
-  )
+  return <ProductCarousel title="Productos relacionados" hits={hits} className="related-products" />
 }
 
 export default RelatedProducts

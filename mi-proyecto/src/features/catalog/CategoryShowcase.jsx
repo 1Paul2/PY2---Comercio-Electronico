@@ -4,6 +4,9 @@ import { searchClient } from './searchClient'
 import { formatCRC } from './format'
 import { getAddButtonLabel, getCartAvailability, toCartItem } from './cartProduct'
 import { useCart } from '../../context/useCart'
+import { useSession } from '../../context/useSession'
+import { hasPermission, PERMISSIONS } from '../session/roles'
+import { PRICE_TYPES } from '../pricing/pricing'
 import '../../styles/CategoryShowcase.css'
 
 const INDEX_NAME = 'grupo-07_products'
@@ -106,11 +109,12 @@ function useCategoryShowcase() {
 function BlockColumn({ category }) {
   const hits = category.hits
   const { addItem, items } = useCart()
+  const { session } = useSession()
+  const role = session?.role
+  const canUseCart = hasPermission(session, PERMISSIONS.USE_CART)
   const [activeIndex, setActiveIndex] = useState(0)
   const [isPointerInside, setIsPointerInside] = useState(false)
   const [isFocusInside, setIsFocusInside] = useState(false)
-  // Guarda el id del producto agregado: la confirmación solo se muestra
-  // para ese producto, aunque luego la columna rote a otro.
   const [addedId, setAddedId] = useState(null)
 
   const isPaused = isPointerInside || isFocusInside || addedId !== null
@@ -134,17 +138,16 @@ function BlockColumn({ category }) {
   const activeHit = hits[activeIndex]
   if (!activeHit) return null
 
-  const price = activeHit.pricing?.b2c?.price_crc
   const quantityInCart = items.find((item) => item.id === activeHit.objectID)?.quantity ?? 0
-  const availability = getCartAvailability(activeHit, quantityInCart)
+  const availability = getCartAvailability(activeHit, quantityInCart, role)
+  const { pricing } = availability
   const justAdded = addedId === activeHit.objectID
 
   function handleAddToCart() {
-    addItem(toCartItem(activeHit, availability.totalStock))
+    addItem(toCartItem(activeHit, role))
     setAddedId(activeHit.objectID)
   }
 
-  // Al salir el foco hacia fuera de la columna (no entre sus propios hijos).
   function handleBlur(event) {
     if (!event.currentTarget.contains(event.relatedTarget)) setIsFocusInside(false)
   }
@@ -195,9 +198,15 @@ function BlockColumn({ category }) {
         </div>
 
         <p className="showcase-rotator__name">{activeHit.title}</p>
-        <p className="showcase-rotator__price">{formatCRC(price)}</p>
+        <p className="showcase-rotator__price">
+          {pricing.isValid ? formatCRC(pricing.basePrice) : 'Precio no disponible'}
+          {pricing.isValid && pricing.priceType === PRICE_TYPES.B2B && (
+            <span className="showcase-rotator__price-type">B2B</span>
+          )}
+        </p>
       </Link>
 
+      {canUseCart && (
       <button
         type="button"
         className={`showcase-column__add${justAdded ? ' showcase-column__add--success' : ''}`}
@@ -205,7 +214,7 @@ function BlockColumn({ category }) {
         disabled={!availability.canAddToCart}
         aria-label={
           !availability.isAvailable
-            ? `${activeHit.title} agotado`
+            ? `${activeHit.title}: ${getAddButtonLabel(availability, false)}`
             : availability.isAtStockLimit
               ? `${activeHit.title}: ya tienes todo el stock disponible en el carrito`
               : `Agregar ${activeHit.title} al carrito`
@@ -213,6 +222,7 @@ function BlockColumn({ category }) {
       >
         {getAddButtonLabel(availability, justAdded)}
       </button>
+      )}
     </div>
   )
 }

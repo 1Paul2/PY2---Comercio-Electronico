@@ -1,7 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatCRC } from './format'
 import { useCart } from '../../context/useCart'
+import { applyAdminChanges } from '../admin/adminChanges'
+import { useSession } from '../../context/useSession'
+import { hasPermission, PERMISSIONS } from '../session/roles'
+import { formatB2BConditions, PRICE_TYPES } from '../pricing/pricing'
 import { getAddButtonLabel, getCartAvailability, toCartItem } from './cartProduct'
 import '../../styles/ProductCard.css'
 
@@ -18,16 +22,23 @@ import '../../styles/ProductCard.css'
  *          hacia el detalle y un botón de "Agregar al carrito".
  * Excepciones: No hay.
  */
-function ProductCard({ hit }) {
+function ProductCard({ hit: rawHit }) {
+  // Las modificaciones simuladas del administrador (precio o inventario) se
+  // aplican sobre el producto del índice antes de mostrarlo y de agregarlo
+  // al carrito, para que el cambio se note en toda la tienda.
+  const hit = useMemo(() => applyAdminChanges(rawHit), [rawHit])
   const { addItem, items } = useCart()
+  const { session } = useSession()
   const [justAdded, setJustAdded] = useState(false)
-
-  const price = hit?.pricing?.b2c?.price_crc
-  const inStock = hit?.pricing?.b2c?.in_stock
+  const role = session?.role
+  // El administrador consulta el catálogo pero no compra: no ve el botón.
+  const canUseCart = hasPermission(session, PERMISSIONS.USE_CART)
 
   const quantityInCart = items.find((item) => item.id === hit.objectID)?.quantity ?? 0
-  const availability = getCartAvailability(hit, quantityInCart)
-  const { totalStock, isAvailable, isAtStockLimit, canAddToCart } = availability
+  const availability = getCartAvailability(hit, quantityInCart, role)
+  const { isAvailable, isAtStockLimit, canAddToCart, hasStock, pricing } = availability
+  const isB2B = pricing.priceType === PRICE_TYPES.B2B
+  const b2bConditions = isB2B ? formatB2BConditions(pricing.minQuantity, pricing.discounts) : ''
 
   useEffect(() => {
     if (!justAdded) return undefined
@@ -38,14 +49,14 @@ function ProductCard({ hit }) {
 
   /**
    * Nombre: handleAddToCart
-   * Descripción: Agrega una unidad del producto al carrito usando el mismo
-   *              formato de payload que ProductDetail para el precio B2C.
+   * Descripción: Agrega el producto al carrito con el precio del rol actual
+   *              (una unidad, o el pedido mínimo si es cliente B2B).
    * Entradas: Ninguna (usa los datos de `hit` del closure).
    * Salidas: No retorna valor; despacha addItem y activa la confirmación visual.
    * Excepciones: No hay; el reducer del carrito valida el stock disponible.
    */
   function handleAddToCart() {
-    addItem(toCartItem(hit, totalStock))
+    addItem(toCartItem(hit, role))
     setJustAdded(true)
   }
 
@@ -70,14 +81,23 @@ function ProductCard({ hit }) {
             <p className="product-card__brand">{hit.brand}</p>
 
             <div className="product-card__footer">
-              <span className="product-card__price">{formatCRC(price)}</span>
-              <span className={`product-card__stock ${inStock ? 'in-stock' : 'out-of-stock'}`}>
-                {inStock ? 'Disponible' : 'Agotado'}
+              {pricing.isValid ? (
+                <span className="product-card__price">
+                  {formatCRC(pricing.basePrice)}
+                  {isB2B && <span className="product-card__price-type">B2B</span>}
+                </span>
+              ) : (
+                <span className="product-card__price product-card__price--invalid">Precio no disponible</span>
+              )}
+              <span className={`product-card__stock ${hasStock ? 'in-stock' : 'out-of-stock'}`}>
+                {hasStock ? 'Disponible' : 'Agotado'}
               </span>
             </div>
+            {b2bConditions && <p className="product-card__conditions">{b2bConditions}</p>}
           </div>
         </Link>
 
+        {canUseCart && (
         <button
           type="button"
           className={`product-card__add${justAdded ? ' product-card__add--success' : ''}`}
@@ -85,7 +105,7 @@ function ProductCard({ hit }) {
           disabled={!canAddToCart}
           aria-label={
             !isAvailable
-              ? `${hit.title} agotado`
+              ? `${hit.title}: ${getAddButtonLabel(availability, false)}`
               : isAtStockLimit
                 ? `${hit.title}: ya tienes todo el stock disponible en el carrito`
                 : `Agregar ${hit.title} al carrito`
@@ -93,6 +113,7 @@ function ProductCard({ hit }) {
         >
           {getAddButtonLabel(availability, justAdded)}
         </button>
+        )}
       </div>
     </article>
   )

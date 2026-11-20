@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { searchClient } from './searchClient'
-import { formatCRCParts, formatPercent } from './format'
+import { formatCRC, formatCRCParts, formatPercent } from './format'
 import RelatedProducts from './RelatedProducts'
+import RecentlyViewed from '../personalization/RecentlyViewed'
 import { useCart } from '../../context/useCart'
+import { applyAdminChanges } from '../admin/adminChanges'
+import { useSession } from '../../context/useSession'
+import { rememberProduct } from '../history/history'
+import { hasPermission, PERMISSIONS, ROLES } from '../session/roles'
+import { getBasePrice, getProductPricing, INVALID_PRICE_MESSAGE, PRICE_TYPES } from '../pricing/pricing'
+import { getTotalStock, toCartItem } from './cartProduct'
+import { EVENT_TYPES, trackEvent } from '../activity/activityLog'
 import '../../styles/ProductDetail.css'
 
-// Nombre del índice de productos en Algolia.
 const INDEX_NAME = 'grupo-07_products'
-
-// Correo de contacto para enviar cotizaciones desde la vista de detalle.
 const QUOTE_EMAIL = 'ventas@maquinariacr.com'
-
-// Atributos prioritarios que se mostrarán como datos rápidos del producto.
 const QUICK_FACT_KEYS = ['brand', 'condition', 'category', 'year']
-
-// Etiquetas legibles para cada facet técnico que se renderiza en la ficha.
 const FACET_LABELS = {
   año_produccion_rango: 'Rango de año de producción',
   blade_type: 'Tipo de hoja',
@@ -78,7 +79,6 @@ function formatFacetValue(value) {
  * Excepciones: No hay.
  */
 function useProduct(id) {
-  // Almacena el resultado de la consulta del producto por ID.
   const [result, setResult] = useState(null)
 
   useEffect(() => {
@@ -97,7 +97,9 @@ function useProduct(id) {
       })
       .then((response) => {
         if (cancelled) return
-        const hit = response.results?.[0]?.hits?.[0]
+        // Se aplican las modificaciones simuladas del administrador antes de
+        // mostrar la ficha, igual que en el catálogo.
+        const hit = applyAdminChanges(response.results?.[0]?.hits?.[0])
         setResult({ id, status: hit ? 'found' : 'not-found', product: hit || null })
       })
       .catch(() => {
@@ -124,18 +126,31 @@ function useProduct(id) {
  * Excepciones: No hay.
  */
 function ProductDetail({ id }) {
-  // Estado del producto consultado: carga, éxito, error o no encontrado.
   const { status, product } = useProduct(id)
   const { addItem } = useCart()
+  const { session } = useSession()
 
-  // Permite volver a la vista anterior desde el detalle.
+  useEffect(() => {
+    if (status === 'found' && product && session?.userId) rememberProduct(product)
+  }, [status, product, session?.userId])
+
   const navigate = useNavigate()
+  const role = session?.role
+  const canUseCart = hasPermission(session, PERMISSIONS.USE_CART)
+  const isAdmin = role === ROLES.ADMIN
+  const [quantityChoice, setQuantity] = useState(null)
 
-  // Selección activa del tipo de precio: público o mayorista.
-  const [priceTab, setPriceTab] = useState('b2c')
-
-  // Cantidad seleccionada por el usuario para cotizar o comprar.
-  const [quantity, setQuantity] = useState(1)
+  useEffect(() => {
+    if (status !== 'found' || !product) return
+    trackEvent(EVENT_TYPES.PRODUCT_VIEW, {
+      productId: product.objectID,
+      name: product.title,
+      brand: product.brand ?? null,
+      category: product.category_facet ?? null,
+      price: getBasePrice(product, role),
+      priceType: role === ROLES.B2B ? PRICE_TYPES.B2B : PRICE_TYPES.B2C,
+    })
+  }, [status, product, role])
 
   if (status === 'loading') {
     return <p className="product-detail__message">Cargando producto...</p>
@@ -154,7 +169,6 @@ function ProductDetail({ id }) {
     )
   }
 
-  // Desestructura la información principal del producto para renderizar la vista.
   const {
     title,
     description,
@@ -170,95 +184,45 @@ function ProductDetail({ id }) {
     brand_facet,
   } = product
 
-  // Suma total del inventario disponible en todas las sedes del producto.
-  const totalStock = locations.reduce((sum, loc) => sum + (loc.stock_quantity || 0), 0)
-
-  // Indica si el producto ofrece precios mayoristas además del público.
-  const hasB2B = Boolean(pricing.b2b)
-
-  // Precio activo según la opción seleccionada por el usuario.
-  const activeTab = hasB2B ? priceTab : 'b2c'
-
-  // Cantidad mínima permitida según el tipo de precio activo.
-  const minQuantity = activeTab === 'b2b' ? pricing.b2b?.min_order_quantity || 1 : 1
-
-  // Verifica si el producto está agotado en la modalidad pública.
-  const isOutOfStock = totalStock <= 0 || (activeTab === 'b2c' && pricing.b2c?.in_stock === false)
-
-  // Máximo de unidades permitidas según el stock disponible.
+  const totalStock = getTotalStock(product)
+  const minQuantity = getProductPricing(product, role).minQuantity
   const maxQuantity = totalStock
-
-  // Indica si la cantidad actual llegó al límite disponible.
+  const quantity = Math.max(minQuantity, Math.min(quantityChoice ?? minQuantity, Math.max(maxQuantity, minQuantity)))
+  const productPricing = getProductPricing(product, role, quantity)
+  const isB2B = productPricing.priceType === PRICE_TYPES.B2B
+  const hasStock = totalStock > 0 && pricing.b2c?.in_stock !== false
+  const belowMinimumStock = hasStock && totalStock < minQuantity
   const isAtMaxStock = quantity >= maxQuantity
-
-  // Precio unitario vigente según la pestaña activa.
-  const rawUnitPrice = activeTab === 'b2b' ? pricing.b2b?.price_crc : pricing.b2c?.price_crc
-
-  // Mejor descuento aplicable según la cantidad elegida para precio mayorista.
-  const bestDiscount =
-    activeTab === 'b2b'
-      ? (pricing.b2b?.volume_discounts || [])
-          .filter((discount) => quantity >= discount.min_units)
-          .reduce((best, discount) => (!best || discount.min_units > best.min_units ? discount : best), null)
-      : null
-
-  // Precio unitario final luego de aplicar el descuento vigente.
-  const discountedUnitPrice =
-    typeof rawUnitPrice === 'number' && bestDiscount
-      ? rawUnitPrice * (1 - bestDiscount.discount_pct)
-      : rawUnitPrice
-
-  // Monto total calculado para la cantidad seleccionada.
+  const canBuy = hasStock && productPricing.isValid && !belowMinimumStock
+  const bestDiscount = productPricing.discount
+  const discountedUnitPrice = productPricing.unitPrice
   const totalPrice = typeof discountedUnitPrice === 'number' ? discountedUnitPrice * quantity : null
-
-  // Datos del precio total para renderizar moneda y monto.
   const activePrice = formatCRCParts(totalPrice)
-
-  // Datos del precio unitario final para mostrarlo en pantalla.
   const unitPriceParts = formatCRCParts(discountedUnitPrice)
+  const originalUnitPriceParts = bestDiscount ? formatCRCParts(productPricing.basePrice) : null
+  const adminB2C = getBasePrice(product, PRICE_TYPES.B2C)
+  const adminB2B = getProductPricing(product, PRICE_TYPES.B2B)
 
-  // Datos del precio original para comparar con el descuento aplicado.
-  const originalUnitPriceParts = bestDiscount ? formatCRCParts(rawUnitPrice) : null
-
-  /**
-   * Nombre: handleTabChange
-   * Descripción: Cambia la pestaña de precio activa y ajusta la cantidad seleccionada al mínimo correspondiente.
-   * Entradas: tab: identificador de la pestaña a activar ('b2c' o 'b2b').
-   * Salidas: No retorna valor; actualiza priceTab y quantity.
-   * Excepciones: No hay.
-   */
-  function handleTabChange(tab) {
-    setPriceTab(tab)
-    const nextMin = tab === 'b2b' ? pricing.b2b?.min_order_quantity || 1 : 1
-    setQuantity(totalStock > 0 ? Math.min(nextMin, totalStock) : nextMin)
-  }
-
-  // Genera el enlace de correo para enviar la cotización del producto actual.
   const quoteHref = (() => {
     const subject = `Cotización — ${title} (${objectID})`
     const body = [
       `Hola, quisiera cotizar ${quantity} unidad(es) de "${title}" (SKU ${objectID}).`,
-      `Tipo de precio: ${activeTab === 'b2b' ? 'Mayorista (B2B)' : 'Público (B2C)'}.`,
+      `Tipo de precio: ${isB2B ? 'Mayorista (B2B)' : 'Público (B2C)'}.`,
     ].join('\n')
     return `mailto:${QUOTE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   })()
 
+  /**
+   * Nombre: handleAddToCart
+   * Descripción: Agrega la cantidad elegida con el precio del rol actual. El
+   *              carrito recalcula el descuento por volumen con el total de
+   *              unidades que quede en la línea.
+   */
   function handleAddToCart() {
-    addItem({
-      id: objectID,
-      name: title,
-      price: discountedUnitPrice,
-      image: image_url,
-      weight_kg: facets.weight_kg,
-      quantity,
-      maxStock: totalStock,
-    })
+    addItem(toCartItem(product, role, quantity))
   }
 
-  // Redondea la calificación para mostrar estrellas completas visualmente.
   const ratingRounded = typeof rating === 'number' ? Math.round(rating) : 0
-
-  // Resumen de datos clave del producto para mostrar en la parte superior.
   const quickFacts = QUICK_FACT_KEYS.filter((key) => facets[key] !== undefined).map((key) => ({
     key,
     label: FACET_LABELS[key] || key,
@@ -332,33 +296,10 @@ function ProductDetail({ id }) {
         </div>
 
         <div className="product-detail__buybox">
-          {hasB2B ? (
-            <div className="buybox__tabs" role="tablist" aria-label="Tipo de precio">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'b2c'}
-                className={activeTab === 'b2c' ? 'is-active' : ''}
-                onClick={() => handleTabChange('b2c')}
-              >
-                Precio al público
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'b2b'}
-                className={activeTab === 'b2b' ? 'is-active' : ''}
-                onClick={() => handleTabChange('b2b')}
-              >
-                Precio mayorista
-              </button>
-            </div>
-          ) : (
-            <h2 className="buybox__heading">Precio al público</h2>
-          )}
+          <h2 className="buybox__heading">{isB2B ? 'Precio mayorista (B2B)' : 'Precio al público'}</h2>
 
           <p className="pricing-card__price">
-            {activePrice ? (
+            {productPricing.isValid && activePrice ? (
               <>
                 <span className="pricing-card__currency">{activePrice.symbol}</span>
                 {activePrice.amount}
@@ -368,7 +309,13 @@ function ProductDetail({ id }) {
             )}
           </p>
 
-          {quantity > 1 && unitPriceParts && (
+          {!productPricing.isValid && (
+            <p className="pricing-card__error" role="alert">
+              {INVALID_PRICE_MESSAGE}
+            </p>
+          )}
+
+          {quantity > 1 && productPricing.isValid && unitPriceParts && (
             <p className="pricing-card__unit-price">
               {originalUnitPriceParts && (
                 <span className="pricing-card__unit-price-original">
@@ -386,17 +333,24 @@ function ProductDetail({ id }) {
             </p>
           )}
 
-          {activeTab === 'b2c' ? (
-            <span className={`stock-badge ${pricing.b2c?.in_stock ? 'stock-badge--in' : 'stock-badge--out'}`}>
-              {pricing.b2c?.in_stock ? 'Disponible' : 'Agotado'}
-            </span>
-          ) : (
+          <span className={`stock-badge ${hasStock ? 'stock-badge--in' : 'stock-badge--out'}`}>
+            {hasStock ? 'Disponible' : 'Agotado'}
+          </span>
+
+          {isB2B && (
             <p className="pricing-card__meta">
-              Pedido mínimo: {pricing.b2b.min_order_quantity} unidad(es)
+              Pedido mínimo: {minQuantity} {minQuantity === 1 ? 'unidad' : 'unidades'}
             </p>
           )}
 
-          {activeTab === 'b2b' && pricing.b2b.volume_discounts?.length > 0 && (
+          {belowMinimumStock && (
+            <p className="pricing-card__error" role="status">
+              Solo hay {totalStock} {totalStock === 1 ? 'unidad' : 'unidades'} en inventario y el pedido mínimo
+              B2B es de {minQuantity}. Puedes solicitar una cotización.
+            </p>
+          )}
+
+          {isB2B && productPricing.discounts.length > 0 && (
             <div className="pricing-card__discounts-wrap">
               <table className="pricing-card__discounts">
                 <thead>
@@ -406,8 +360,11 @@ function ProductDetail({ id }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {pricing.b2b.volume_discounts.map((discount) => (
-                    <tr key={discount.min_units}>
+                  {productPricing.discounts.map((discount) => (
+                    <tr
+                      key={discount.min_units}
+                      className={bestDiscount?.min_units === discount.min_units ? 'is-active' : undefined}
+                    >
                       <td>{discount.min_units}</td>
                       <td>{formatPercent(discount.discount_pct)}</td>
                     </tr>
@@ -417,42 +374,63 @@ function ProductDetail({ id }) {
             </div>
           )}
 
-          <div className="buybox__actions">
-            <div className="quantity-selector">
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.max(minQuantity, q - 1))}
-                disabled={quantity <= minQuantity}
-                aria-label="Disminuir cantidad"
-              >
-                −
-              </button>
-              <span className="quantity-selector__value">{quantity}</span>
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
-                disabled={isAtMaxStock}
-                aria-label="Aumentar cantidad"
-              >
-                +
-              </button>
-            </div>
+          {!session && (
+            <p className="pricing-card__hint">
+              ¿Compras para una empresa? <Link to="/login">Inicia sesión como cliente B2B</Link> para ver el
+              precio mayorista.
+            </p>
+          )}
 
-            {isOutOfStock ? (
-              <button type="button" className="btn-cta" disabled>
-                No disponible
-              </button>
-            ) : (
-              <>
+          {isAdmin && (
+            <div className="pricing-card__admin" role="note">
+              <p className="pricing-card__admin-title">Vista de administrador</p>
+              <p>Precio B2C: {adminB2C !== null ? formatCRC(adminB2C) : 'no disponible'}</p>
+              <p>
+                Precio B2B: {adminB2B.isValid ? formatCRC(adminB2B.basePrice) : 'no disponible'}
+                {adminB2B.isValid && ` · mínimo ${adminB2B.minQuantity}`}
+              </p>
+              <p className="pricing-card__admin-note">Los administradores consultan precios, pero no compran.</p>
+            </div>
+          )}
+
+          {canUseCart && (
+            <div className="buybox__actions">
+              <div className="quantity-selector">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
+                  disabled={quantity <= minQuantity || !canBuy}
+                  aria-label="Disminuir cantidad"
+                >
+                  −
+                </button>
+                <span className="quantity-selector__value">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                  disabled={isAtMaxStock || !canBuy}
+                  aria-label="Aumentar cantidad"
+                >
+                  +
+                </button>
+              </div>
+
+              {canBuy ? (
                 <button type="button" className="btn-cta" onClick={handleAddToCart}>
                   Agregar al carrito
                 </button>
+              ) : (
+                <button type="button" className="btn-cta" disabled>
+                  No disponible
+                </button>
+              )}
+              {hasStock && (
                 <a className="btn-cta btn-cta--secondary" href={quoteHref}>
                   Solicitar cotización
                 </a>
-              </>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <p className="product-detail__seller">Vendido por Maquinaria CR</p>
         </div>
@@ -524,6 +502,7 @@ function ProductDetail({ id }) {
 
       <div className="product-detail__related">
         <RelatedProducts categoryFacet={category_facet} brandFacet={brand_facet} excludeId={objectID} />
+        <RecentlyViewed excludeId={objectID} className="personal-section--detail" />
       </div>
     </article>
   )

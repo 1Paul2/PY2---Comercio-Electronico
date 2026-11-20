@@ -254,3 +254,16 @@
     font-size: 0.85rem;
   }
 }
+/* Etiqueta "B2B" junto al precio del producto destacado. */
+.showcase-rotator__price-type {
+  display: inline-block;
+  margin-left: 0.3rem;
+  padding: 0 0.35rem;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.6rem;
+  font-weight: 800;
+  vertical-align: middle;
+}

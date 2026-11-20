@@ -1,0 +1,74 @@
+[
+  {
+    "objectID": "u-b2c-01",
+    "name": "Ana Mora Solís",
+    "email": "ana.mora@correo.cr",
+    "role": "B2C",
+    "phone": "8845-1203",
+    "province": "Heredia",
+    "company": null,
+    "description": "Cliente particular que compra repuestos para su minicargador."
+  },
+  {
+    "objectID": "u-b2c-02",
+    "name": "José Pablo Quesada",
+    "email": "jp.quesada@correo.cr",
+    "role": "B2C",
+    "phone": "7012-5588",
+    "province": "Cartago",
+    "company": null,
+    "description": "Agricultor que compra repuestos para su tractor."
+  },
+  {
+    "objectID": "u-b2b-01",
+    "name": "Carlos Vargas Rojas",
+    "email": "compras@constructoratica.cr",
+    "role": "B2B",
+    "phone": "2290-4410",
+    "province": "San José",
+    "company": {
+      "name": "Constructora Tica S.A.",
+      "legalId": "3-101-456789",
+      "sector": "Construcción e infraestructura",
+      "contact": "Carlos Vargas Rojas, jefe de compras",
+      "phone": "2290-4410"
+    },
+    "description": "Empresa constructora que compra maquinaria y repuestos al por mayor."
+  },
+  {
+    "objectID": "u-b2b-02",
+    "name": "Daniela Chaves Ureña",
+    "email": "proveeduria@agrovalle.cr",
+    "role": "B2B",
+    "phone": "2441-7720",
+    "province": "Alajuela",
+    "company": {
+      "name": "Agroindustrial del Valle S.A.",
+      "legalId": "3-101-778812",
+      "sector": "Agroindustria",
+      "contact": "Daniela Chaves Ureña, proveeduría",
+      "phone": "2441-7720"
+    },
+    "description": "Empresa agrícola que renueva su flota de tractores y montacargas."
+  },
+  {
+    "objectID": "u-admin-01",
+    "name": "Laura Jiménez Castro",
+    "email": "admin@maquinariacr.com",
+    "role": "ADMIN",
+    "phone": "8000-0000",
+    "province": "San José",
+    "company": null,
+    "description": "Administradora de la tienda: consulta órdenes, productos e inventario."
+  },
+  {
+    "objectID": "u-sinrol-01",
+    "name": "Pedro Ruiz Arias",
+    "email": "pedro.ruiz@correo.cr",
+    "role": "INVITADO",
+    "phone": "6123-9087",
+    "province": "Puntarenas",
+    "company": null,
+    "description": "Usuario de prueba con un rol que no existe; no debe poder iniciar sesión."
+  }
+]

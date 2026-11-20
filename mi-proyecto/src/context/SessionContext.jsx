@@ -1,0 +1,38 @@
+import { useCallback, useMemo, useState } from 'react'
+import { SessionContext } from './useSession'
+import { endSession, getSession, startSession } from '../features/session/session'
+import { EVENT_TYPES, trackEvent } from '../features/activity/activityLog'
+
+/**
+ * Nombre: SessionProvider
+ * Descripción: Estado global del usuario activo y de su rol. Lee la sesión
+ *              guardada al cargar la app y registra los eventos de inicio y
+ *              cierre de sesión. login recibe un usuario del índice de
+ *              usuarios y lanza Error si su rol no es válido.
+ * Entradas: children: la aplicación.
+ * Salidas: JSX con el proveedor del contexto.
+ * Excepciones: No hay.
+ */
+export function SessionProvider({ children }) {
+  const [session, setSession] = useState(getSession)
+
+  const login = useCallback((user) => {
+    const newSession = startSession(user)
+    setSession(newSession)
+    // Se registra después de guardar la sesión para que el evento ya lleve
+    // el id del usuario que acaba de entrar.
+    trackEvent(EVENT_TYPES.LOGIN, { name: newSession.name, email: newSession.email, role: newSession.role })
+    return newSession
+  }, [])
+
+  const logout = useCallback(() => {
+    // Se registra antes de borrar la sesión para saber quién salió.
+    trackEvent(EVENT_TYPES.LOGOUT, {})
+    endSession()
+    setSession(null)
+  }, [])
+
+  const value = useMemo(() => ({ session, login, logout }), [session, login, logout])
+
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+}
