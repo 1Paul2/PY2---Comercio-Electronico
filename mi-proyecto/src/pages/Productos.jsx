@@ -10,14 +10,21 @@ import Catalog from '../features/catalog/Catalog'
 import Footer from '../components/Footer'
 
 /* Componente Productos: inicializa la búsqueda con los params de la URL. */
+// Correccion - el catalogo ignoraba ?q y ?categoria si cambiaban estando ya en /productos.
 function Productos() {
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') || ''
   const initialCategory = searchParams.get('categoria')
 
-  /* Estado inicial: texto de búsqueda y filtro por categoría si viene en la URL. */
+  /* Estado inicial: texto de búsqueda y filtro por categoría si viene en la URL.
+     initialUiState solo se lee al montar InstantSearch. La key lo vuelve a
+     montar cuando la URL trae otra búsqueda o categoría (enlaces de
+     categoría del footer, búsquedas recientes, atrás/adelante del
+     navegador). Escribir en el buscador no cambia la URL, así que no lo
+     reinicia. */
   return (
     <InstantSearch
+      key={`${initialQuery}|${initialCategory ?? ''}`}
       searchClient={searchClient}
       indexName="grupo-07_products"
       initialUiState={{
