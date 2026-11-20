@@ -318,6 +318,28 @@
   }
 }
 
+/* Correccion - entre 769 y 1279px el encabezado se salia de la pantalla.
+   Responsive ≤1279px (tablet y laptop pequeña): el buscador baja a su propia
+   fila de ancho completo y el bloque de sesión/carrito/tema puede pasar a
+   otra línea si no cabe junto al logo y el menú. Con un cliente B2B (nombre,
+   empresa y botón Salir) la fila única necesita unos 1260px. */
+@media (max-width: 1279px) {
+  .search-header {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .search-header__center {
+    flex: 1 1 100%;
+    max-width: 100%;
+    order: 3;
+  }
+
+  .search-header__right {
+    margin-left: auto;
+  }
+}
+
 /* Responsive ≤768px: header en dos filas con el buscador abajo. */
 @media (max-width: 768px) {
   .search-header {
